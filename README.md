@@ -93,7 +93,7 @@ kamdhenu-app-main/
 │── requirements.txt         # Dependencies
 │── .env                     # Environment variables (not committed)
 │── README.md                # Project documentation
-|──Cows.db                   #Database
+|──Cows.db                   # Database
 ```
 
 ---

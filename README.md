@@ -68,7 +68,7 @@ This application integrates multiple modules accessible through an intuitive web
 ### **2. Clone the Repository**
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/Yasaswini-ch/_Reviving_the_Indian_Cow_Breed_A_Sustainable_Future_
 cd kamdhenu-app-main
 ```
 
@@ -134,7 +134,7 @@ streamlit run app.py
 
 ## 🚀 Live Deployment
 
-Access the deployed Streamlit app here: [Kamdhenu App](<your-streamlit-app-url>)
+Access the deployed Streamlit app here: [Kamdhenu App](<https://revivingtheindiancowbreedasustainablefuture-ouege4zdywjmgbgbty.streamlit.app/>)
 
 ---
 

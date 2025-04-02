@@ -1,0 +1,32 @@
+# requirements.txt
+
+# --- Core Frameworks ---
+streamlit >= 1.20.0  # Or a specific version you are using
+fastapi >= 0.90.0   # For the backend API
+uvicorn[standard] >= 0.20.0 # ASGI server for FastAPI (standard includes websockets etc.)
+
+# --- Streamlit Components ---
+streamlit-option-menu >= 0.3.0
+
+# --- Data Handling & Manipulation ---
+pandas >= 1.5.0
+
+# --- APIs & External Services ---
+google-generativeai >= 0.3.0 # For Gemini API
+googletrans >= 4.0.0rc1     # For translation (Note: unofficial API, can be unstable)
+# OR google-cloud-translate  # If using the official Google Cloud Translation API
+python-dotenv >= 1.0.0      # For loading .env files
+requests >= 2.28.0          # For making HTTP requests (used by Streamlit to call FastAPI)
+roboflow >= 1.1.0           # For Roboflow API
+
+# --- Image Processing & Computer Vision ---
+Pillow >= 9.0.0             # PIL - Python Imaging Library
+numpy >= 1.20.0             # Required by OpenCV and others
+opencv-python-headless >= 4.5.0 # OpenCV (headless version is often sufficient for servers)
+supervision >= 0.16.0       # For drawing bounding boxes (check latest version compatibility)
+
+# --- Database ---
+# sqlite3 is built-in to Python, no explicit install needed
+
+# --- Potentially Needed (Depending on exact setup/OS) ---
+python-multipart            # Required by FastAPI for File/UploadFile handling

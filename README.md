@@ -57,6 +57,70 @@ This application integrates multiple modules accessible through an intuitive web
 - Python 3.10+
 
 ---
+## 💂️ Getting Started
+
+### **1. Prerequisites**
+
+- Python 3.10 or higher installed.
+- Git installed.
+- Access to a terminal or command prompt.
+
+### **2. Clone the Repository**
+
+```bash
+git clone <your-repository-url>
+cd kamdhenu-app-main
+```
+
+### **3. Create and Activate Virtual Environment**
+
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### **4. Install Dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+### **5. Configure Environment Variables**
+
+Create a `.env` file in the project root directory and add:
+
+```env
+GOOGLE_API_KEY=YOUR_GOOGLE_GEMINI_API_KEY
+ROBOFLOW_API_KEY=YOUR_ROBOFLOW_API_KEY
+```
+
+### **6. Set Up the Database**
+
+```bash
+python setup_database.py
+```
+
+### **7. Running the Application**
+
+#### **a) Start the FastAPI Backend API**
+
+```bash
+uvicorn new:app --reload --host 127.0.0.1 --port 8000
+```
+
+#### **b) Start the Streamlit Frontend**
+
+```bash
+streamlit run app.py
+```
+
+---
+
 
 ## 💂️ How It Works (Detailed Working)
 
@@ -93,7 +157,7 @@ kamdhenu-app-main/
 │── requirements.txt         # Dependencies
 │── .env                     # Environment variables (not committed)
 │── README.md                # Project documentation
-|──Cows.db                   # Database
+|── Cows.db                   # Database
 ```
 
 ---

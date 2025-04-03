@@ -8,7 +8,7 @@ import cv2
 from PIL import Image
 import uuid # Import for unique filenames
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, status # Import status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from roboflow import Roboflow # Assuming RoboflowError isn't available
@@ -72,10 +72,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def read_root():
-    """ Root endpoint for health check. """
+
+# ... FastAPI app initialization and CORS ...
+
+# Modify the root endpoint to include HEAD
+@app.get(
+    "/",
+    summary="Health Check",
+    description="Returns a success message if the API is running.",
+    status_code=status.HTTP_200_OK, # Explicitly set success code for GET
+    # No specific response model needed for HEAD as it returns no body
+    responses={
+        status.HTTP_200_OK: {"description": "API is running (GET)"},
+        status.HTTP_405_METHOD_NOT_ALLOWED: {"description": "Method Not Allowed (e.g., for methods other than GET/HEAD)"}
+    }
+)
+@app.head(
+    "/",
+    summary="Health Check (HEAD)",
+    description="Allows checking if the API is running without retrieving the body.",
+    status_code=status.HTTP_200_OK, # Return OK for HEAD as well
+    include_in_schema=False # Optional: hide HEAD from OpenAPI docs
+)
+async def read_root_head():
+    """ Root endpoint for health check (handles GET and HEAD). """
+    # For GET, FastAPI returns the dict.
+    # For HEAD, FastAPI automatically returns only headers with a 200 OK status.
+    # You can return None or an empty response for HEAD if preferred,
+    # but returning the message doesn't hurt as body is stripped for HEAD.
     return {"message": "Cattle Breed Detection API is running."}
+
+# ... rest of your code (@app.post("/predict/"), etc.) ...
 
 @app.post("/predict/")
 async def predict(image: UploadFile = File(...)):

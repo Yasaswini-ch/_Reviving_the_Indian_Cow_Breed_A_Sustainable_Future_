@@ -20,9 +20,12 @@ st.set_page_config(
 )
 
 # --- Load Environment Variables & API Keys ---
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-BACKEND_URL = "http://127.0.0.1:8000/predict/" # FastAPI backend URL
+
+load_dotenv() # Still useful for local .env file
+# Use Streamlit secrets for deployed BACKEND_URL, fallback to env var/default
+BACKEND_URL = st.secrets.get("BACKEND_URL", os.getenv("BACKEND_URL", "http://127.0.0.1:8000/predict/"))
+# Use Streamlit secrets for GOOGLE_API_KEY as well
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY"))
 
 # --- Initialize Google Generative AI API ---
 # Initialize only if key exists to avoid errors on startup
@@ -30,19 +33,21 @@ gemini_model = None
 if GOOGLE_API_KEY:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        # Check if model exists, otherwise fall back or warn
         try:
-            gemini_model = genai.GenerativeModel("gemini-1.5-pro-latest")
-            # Test generation to ensure validity (optional, adds slight delay)
-            # gemini_model.generate_content("test")
+            gemini_model = genai.GenerativeModel("gemini-2.0-flash")
         except Exception as model_err:
              st.warning(f"Could not initialize Google AI Model (gemini-1.5-pro-latest): {model_err}. Chatbot might not function.", icon="⚠️")
-             gemini_model = None # Ensure model is None if init fails
+             gemini_model = None
     except Exception as e:
         st.error(f"Error configuring Google AI SDK: {e}")
-        GOOGLE_API_KEY = None # Mark as unusable
+        GOOGLE_API_KEY = None
 else:
-    st.warning("Google API key not found! Chatbot functionality requires a valid API key set in a .env file.", icon="🔑")
+    # Provide a clearer warning if the key is missing IN the .env file vs. the file not found
+    if os.path.exists(".env"):
+         st.warning("Google API key not found in the .env file! Chatbot requires a valid GOOGLE_API_KEY.", icon="🔑")
+    else:
+         st.warning(".env file not found. Chatbot functionality requires a .env file with a valid GOOGLE_API_KEY.", icon="📄")
+
 
 # --- Database Connection ---
 @st.cache_resource # Cache the connection for efficiency
@@ -79,12 +84,12 @@ CATTLE_BREEDS_DATA = [
     {"name": "Sahiwal", "region": "Punjab", "milk_yield": 14, "strength": "Medium", "lifespan": 20, "image": "images/sahiwal.jpg"},
     {"name": "Ongole", "region": "Andhra Pradesh", "milk_yield": 10, "strength": "Very High", "lifespan": 22, "image": "images/ongole.jpg"},
     {"name": "Punganur", "region": "Andhra Pradesh", "milk_yield": 6, "strength": "Low", "lifespan": 15, "image": "images/punganur.jpg"},
-    {"name": "Amrit Mahal", "region": "Karnataka", "milk_yield": 7, "strength": "High", "lifespan": 18, "image": "images/amrit_mahal.jpg"},
-    {"name": "Deoni", "region": "Maharashtra", "milk_yield": 9, "strength": "Medium", "lifespan": 19, "image": "images/deoni.jpg"},
+    {"name": "Amrit Mahal", "region": "Karnataka", "milk_yield": 7, "strength": "High", "lifespan": 18, "image": "images/amritmahal.jpg"},
+    {"name": "Deoni", "region": "Maharashtra", "milk_yield": 9, "strength": "Medium", "lifespan": 19, "image": "images/deoni.jpeg"},
     {"name": "Hallikar", "region": "Karnataka", "milk_yield": 8, "strength": "Very High", "lifespan": 20, "image": "images/hallikar.jpg"},
     {"name": "Kankrej", "region": "Gujarat", "milk_yield": 11, "strength": "High", "lifespan": 21, "image": "images/kankrej.jpg"},
     {"name": "Krishna Valley", "region": "Karnataka", "milk_yield": 7, "strength": "Very High", "lifespan": 19, "image": "images/krishna_valley.jpg"},
-    {"name": "Malnad Gidda", "region": "Karnataka", "milk_yield": 5, "strength": "Medium", "lifespan": 16, "image": "images/malnad_gidda.jpg"},
+    {"name": "Malnad Gidda", "region": "Karnataka", "milk_yield": 5, "strength": "Medium", "lifespan": 16, "image": "images/malnad_gidda.jpeg"},
     {"name": "Rathi", "region": "Rajasthan", "milk_yield": 10, "strength": "Medium", "lifespan": 20, "image": "images/rathi.jpg"},
     {"name": "Red Sindhi", "region": "Sindh (Origin)", "milk_yield": 11, "strength": "High", "lifespan": 22, "image": "images/red_sindhi.jpg"}, # Adjusted region for clarity
     {"name": "Tharparkar", "region": "Rajasthan", "milk_yield": 9, "strength": "Medium", "lifespan": 21, "image": "images/tharparkar.jpg"}
@@ -671,7 +676,8 @@ elif selected_page == "Chatbot":
             selected_language_name = st.selectbox(
                 "Choose interaction language:",
                 lang_keys,
-                index=current_lang_index
+                index=current_lang_index,
+                key="chat_lang_select" # Add a key
             )
             st.session_state.chat_language = language_options[selected_language_name]
             lang_code = st.session_state.chat_language
@@ -691,58 +697,104 @@ elif selected_page == "Chatbot":
                 # --- Get and process AI Response ---
                 with st.chat_message("assistant"):
                     message_placeholder = st.empty()
-                    message_placeholder.markdown("Thinking... <img src='data:image/gif;base64,R0lGODlhEAAQAPIAAP///wAAAMLCwkJCQgAAAGJiYoKCgpKSkiH/C05FVFNDQVBFMi4wAwEAAAAh/hpDcmVhdGVkIHdpdGggYWpheGxvYWQuaW5mbwAh+QQJCgAAACwAAAAAEAAQAAADMwi63P4wyklrE2MIOggZnAdOmGYJRbExwroUmcG2LmDEwnHQLVsYOd2mBzkYDAdKa+dIAAAh+QQJCgAAACwAAAAAEAAQAAADNAi63P5OjCEgG4QMu7DmikRxQlFUYDEZIGBMRVsaqHwctXXf7WEYB4Ag1xjihkMZsiUkKhIAIfkECQoAAAAsAAAAABAAEAAAAzYIujIjK8pByJDMlFYvBoVjHA70GU7xSUJhmKtwHPAKzLO9HMaoKwJZ7Rf8AYPDDzKpZBqfvwQAIfkECQoAAAAsAAAAABAAEAAAAzMIumIlK8oyhpHsnFZfhYumCYUhDAQxRIdhHBGqRoKw0R8DYlJd8z0fMDgsGo/IpHI5TAAAIfkECQoAAAAsAAAAABAAEAAAAzIIunInK0rnZBTwGPNMgQwmdsNgXGJUlIWEuR5oWUIpz8pAEAMe6TwfwyYsGo/IpFKSAAAh+QQJCgAAACwAAAAAEAAQAAADMwi6IMKQORfjdOe82p4wGccc4CEuQradylesojEMBgsUc2G7sDX3lQGBMLAJibufbSlKAAAh+QQJCgAAACwAAAAAEAAQAAADMgi63P7wCRHZnFVdmgHu2nFwlWCI3WGc3TSWhUFGxTAUkGCbtgENBMJAEJsxgMLWzpEAACH5BAkKAAAALAAAAAAQABAAAAMyCLrc/jDKSatlQtScKdceCAjDII7HcQ4EMTCpyrCuUBjCYRgHVtqlAiB1YhiCnlsRkAAAOwAAAAAAAAAAAA==' width='16' height='16'>", unsafe_allow_html=True) # Simple spinner GIF
-                    try:
-                        # Translate user input to English for the model if needed
-                        prompt_en = prompt
-                        if lang_code != 'en':
-                             translation = translator.translate(prompt, src=lang_code, dest='en')
-                             prompt_en = translation.text
-
-                        # Construct a focused prompt for the LLM
-                        # (Using the same focused prompt as before)
-                        contextual_prompt = f"""
-                        You are 'Kamdhenu Sahayak', an AI assistant for Indian farmers. Focus on:
-                        1. Indigenous Indian cattle breeds (Gir, Sahiwal, Ongole, Tharparkar, etc.): care, characteristics, conservation.
-                        2. Sustainable & Organic Farming Practices relevant to India (like those in the Eco Practices section).
-                        3. Common Cattle Diseases in India: symptoms, basic prevention (advise vet consultation for diagnosis/treatment).
-                        4. Indian Government Schemes for Agriculture & Animal Husbandry. Briefly explain purpose and eligibility if known.
-                        5. General cattle lifecycle management (feeding, housing, health).
-                        6. Basic market price trends or valuation factors (general info only).
-
-                        Answer the following user question concisely and helpfully in a friendly tone. If the question is unrelated to these topics, politely state you specialize in Indian farming and cattle care.
-                        User question (potentially translated): {prompt_en}
-                        Respond in {selected_language_name}. Ensure the response is well-formatted (e.g., use bullet points if appropriate).
-                        """
-
-                        # Generate the response using the initialized model
-                        response = gemini_model.generate_content(contextual_prompt)
-                        response_text_en = response.text
-
-                        # Translate response back to the user's language if needed
-                        final_response_text = response_text_en
-                        if lang_code != 'en':
-                             final_response_translation = translator.translate(response_text_en, src='en', dest=lang_code)
-                             final_response_text = final_response_translation.text
-
-                        # Display the final response
-                        message_placeholder.markdown(final_response_text)
-                        # Add response to session state
-                        st.session_state.messages.append({"role": "assistant", "content": final_response_text})
-
-                    except Exception as e:
-                        st.error(f"Error generating response: {e}")
-                        error_msg = f"Sorry, I encountered an error processing your request in {selected_language_name}. Please try again or ask differently."
-                        # Translate error message if possible
+                    # Use Streamlit's spinner for better UX
+                    with st.spinner(f"Thinking in {selected_language_name}..."):
                         try:
+                            # Translate user input to English for the model if needed
+                            prompt_en = prompt
                             if lang_code != 'en':
-                                error_msg = translator.translate(error_msg, src='en', dest=lang_code).text
-                        except Exception:
-                            pass # Keep English error if translation fails
-                        message_placeholder.markdown(error_msg)
-                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                                try:
+                                    translation = translator.translate(prompt, src=lang_code, dest='en')
+                                    prompt_en = translation.text
+                                except Exception as trans_in_err:
+                                     st.warning(f"Could not translate input to English: {trans_in_err}. Using original input.", icon="⚠️")
+                                     prompt_en = prompt # Fallback to original
+
+                            # Construct a focused prompt for the LLM
+                            contextual_prompt = f"""
+                            You are 'Kamdhenu Sahayak', an AI assistant for Indian farmers and cattle rearers. Focus specifically on:
+                            1. Indigenous Indian cattle breeds (like Gir, Sahiwal, Ongole, Tharparkar, Kankrej, Rathi, Hallikar, etc.): Their care, characteristics, milk yield, draft power, climate suitability, and conservation status.
+                            2. Sustainable & Eco-Friendly Farming Practices relevant to India, especially those involving cattle: Manure management (composting, biogas), rotational grazing, water conservation for livestock, agroforestry/silvopasture for fodder and shade, organic farming principles for fodder crops.
+                            3. Common Cattle Diseases in India: Recognizing symptoms, basic first aid/preventive measures (e.g., vaccination schedules, deworming), but **always strongly emphasize consulting a qualified veterinarian** for actual diagnosis and treatment. Do not provide specific drug dosages. Mention diseases like FMD, HS, BQ, Mastitis, Scours, Bloat.
+                            4. Indian Government Schemes for Agriculture & Animal Husbandry: Briefly explain the purpose, key benefits, and general eligibility criteria for major central schemes (like RGM, NLM, KCC, PM-KUSUM related to biogas) and notable state schemes if specified by the user (though your knowledge might be limited). Direct users to official portals for details.
+                            5. General cattle lifecycle management: Key nutritional needs and care during different stages (calf, heifer, pregnant, lactating, dry cow, bull).
+                            6. Basic factors affecting cattle price/valuation (breed, age, health, milk yield, pregnancy status, pedigree), but state that actual market prices vary greatly. Avoid giving specific price predictions.
+
+                            Answer the following user question concisely and helpfully in a friendly, respectful tone appropriate for farmers.
+                            Use simple language. If the question is completely unrelated to these topics, politely state that you specialize in Indian farming, particularly cattle care and sustainable practices, and cannot answer the unrelated query.
+                            User question (potentially translated from {selected_language_name}): {prompt_en}
+                            Respond *only* in {selected_language_name}. Ensure the response is well-formatted (e.g., use bullet points or short paragraphs for clarity).
+                            """
+
+                            # Generate the response using the initialized model
+                            response = gemini_model.generate_content(contextual_prompt)
+
+                            # --- ROBUST RESPONSE HANDLING ---
+                            response_text_en = "" # Initialize empty response
+                            try:
+                                # Check candidates and parts for robustness (handles safety blocking)
+                                if hasattr(response, 'candidates') and response.candidates and hasattr(response.candidates[0], 'content') and hasattr(response.candidates[0].content, 'parts') and response.candidates[0].content.parts:
+                                    response_text_en = response.candidates[0].content.parts[0].text
+                                else:
+                                    # Handle cases where response structure is unexpected or blocked
+                                    block_reason_msg = "Unknown reason."
+                                    if hasattr(response, 'prompt_feedback') and hasattr(response.prompt_feedback, 'block_reason'):
+                                        block_reason_msg = f"Block Reason: {response.prompt_feedback.block_reason}."
+                                    elif hasattr(response, 'candidates') and response.candidates and hasattr(response.candidates[0], 'finish_reason'):
+                                         block_reason_msg = f"Finish Reason: {response.candidates[0].finish_reason}."
+
+                                    st.warning(f"Warning: AI response may be empty or blocked. {block_reason_msg}", icon="⚠️")
+                                    response_text_en = "I apologize, but I couldn't generate a complete response for that request. This might be due to safety filters or the query itself. Could you please try rephrasing?"
+
+                            except ValueError as ve:
+                                # This can happen if .text is accessed on a blocked response part
+                                st.error(f"Error processing AI response (potentially blocked content): {ve}")
+                                response_text_en = "I encountered an issue processing the response, possibly due to content filters. Please try again or rephrase your question."
+                            except Exception as e_resp:
+                                # Catch any other unexpected errors processing the response object
+                                st.error(f"An unexpected error occurred while processing the AI response: {e_resp}")
+                                response_text_en = "Sorry, an internal error occurred while processing the response."
+                            # --- END ROBUST RESPONSE HANDLING ---
+
+
+                            # Translate response back to the user's language if needed
+                            final_response_text = response_text_en
+                            if lang_code != 'en' and response_text_en: # Avoid translating empty strings or error messages
+                                 try:
+                                     # Ensure text isn't just the error message before translating
+                                     if "I apologize" not in response_text_en and "I encountered an issue" not in response_text_en:
+                                         final_response_translation = translator.translate(response_text_en, src='en', dest=lang_code)
+                                         final_response_text = final_response_translation.text
+                                     else:
+                                         # Attempt to translate the apology/error message itself
+                                          final_response_translation = translator.translate(response_text_en, src='en', dest=lang_code)
+                                          final_response_text = final_response_translation.text
+                                 except Exception as trans_err:
+                                     st.error(f"Error translating response to {selected_language_name}: {trans_err}")
+                                     # Fallback to English response with note
+                                     final_response_text = f"(Translation Error) {response_text_en}"
+
+
+                            # Display the final response
+                            message_placeholder.markdown(final_response_text)
+                            # Add response to session state
+                            st.session_state.messages.append({"role": "assistant", "content": final_response_text})
+
+                        except Exception as e:
+                            # General error during API call or translation setup
+                            st.error(f"Error generating response: {e}")
+                            error_msg = f"Sorry, I encountered an error processing your request in {selected_language_name}. Please try again or ask differently."
+                            # Translate error message if possible
+                            try:
+                                if lang_code != 'en':
+                                    error_msg = translator.translate(error_msg, src='en', dest=lang_code).text
+                            except Exception:
+                                pass # Keep English error if translation fails
+                            message_placeholder.markdown(error_msg)
+                            st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
         except Exception as e:
+            # Error initializing translator etc.
             st.error(f"Chatbot failed to initialize: {e}. Please check configuration.")
 
 

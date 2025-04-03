@@ -23,7 +23,7 @@ st.set_page_config(
 
 load_dotenv() # Still useful for local .env file
 # Use Streamlit secrets for deployed BACKEND_URL, fallback to env var/default
-BACKEND_URL = st.secrets.get("BACKEND_URL", os.getenv("BACKEND_URL", "http://127.0.0.1:8000/predict/"))
+BACKEND_URL = st.secrets.get("BACKEND_URL", os.getenv("BACKEND_URL", "https://reviving-the-indian-cow-breed-a.onrender.com/predict/"))
 # Use Streamlit secrets for GOOGLE_API_KEY as well
 GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY"))
 

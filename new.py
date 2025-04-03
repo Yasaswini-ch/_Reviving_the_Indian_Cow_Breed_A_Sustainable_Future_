@@ -104,4 +104,8 @@ async def predict(image: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Port from environment variable for Render/Heroku, default if not set
+    port = int(os.environ.get("PORT", 8000))
+    logger.info(f"Starting Cattle Breed Detection API server on host 0.0.0.0:{port}")
+    # Use "0.0.0.0" to be accessible externally
+    uvicorn.run("new:app", host="0.0.0.0", port=port) # REMOVE reload=True for production

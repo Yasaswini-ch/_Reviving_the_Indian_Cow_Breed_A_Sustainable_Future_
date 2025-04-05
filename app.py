@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from googletrans import Translator, LANGUAGES
-import requests
+import requests # Keep requests as it was in the original file
 import pandas as pd
 import google.generativeai as genai
 import os
@@ -12,6 +12,15 @@ from dotenv import load_dotenv
 from PIL import Image
 import sqlite3
 
+# Imports specifically needed for the integrated Roboflow logic
+import cv2
+import numpy as np
+from roboflow import Roboflow # Requires 'pip install roboflow'
+import supervision as sv # Requires 'pip install supervision'
+import uuid # Standard library
+import traceback # Standard library
+import logging # Standard library
+
 # --- Configuration ---
 st.set_page_config(
     page_title="Kamdhenu Program",
@@ -19,34 +28,80 @@ st.set_page_config(
     layout="wide" # Use wide layout
 )
 
+# --- Initialize Logging (Optional but Recommended) ---
+# You can comment this out if you prefer no logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- Load Environment Variables & API Keys ---
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY") # <<< ADDED: Load Roboflow key
+# Make sure this BACKEND_URL is correct for your deployment (e.g., localhost or deployed URL)
+# BACKEND_URL variable is now only relevant if other parts of the app used it,
+# but the "Identify Breed" section will not use it anymore.
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/predict/") # Kept as per original file
 # --- Load Environment Variables & API Keys ---
 
-load_dotenv() # Still useful for local .env file
-# Use Streamlit secrets for deployed BACKEND_URL, fallback to env var/default
-BACKEND_URL = st.secrets.get("BACKEND_URL", os.getenv("BACKEND_URL", "https://reviving-the-indian-cow-breed-a.onrender.com/predict/"))
-# Use Streamlit secrets for GOOGLE_API_KEY as well
-GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY"))
+# --- Roboflow Configuration (Added for integrated logic) ---
+ROBOFLOW_PROJECT_ID = "cattle-breed-9rfl6-xqimv-mqao3" # Verify this is correct
+ROBOFLOW_MODEL_VERSION = 6
+CONFIDENCE_THRESHOLD = 40
+OVERLAP_THRESHOLD = 30
+
 
 # --- Initialize Google Generative AI API ---
-# Initialize only if key exists to avoid errors on startup
+# (Keep your original Gemini initialization logic)
 gemini_model = None
 if GOOGLE_API_KEY:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
         try:
+            # <<< KEPT YOUR ORIGINAL MODEL NAME >>>
             gemini_model = genai.GenerativeModel("gemini-2.0-flash")
+            logger.info("Google AI Model (gemini-2.0-flash) initialized.") # Log success
         except Exception as model_err:
+             # <<< KEPT YOUR ORIGINAL WARNING MESSAGE REFERENCE >>>
              st.warning(f"Could not initialize Google AI Model (gemini-1.5-pro-latest): {model_err}. Chatbot might not function.", icon="⚠️")
+             logger.warning(f"Google AI Model initialization failed: {model_err}")
              gemini_model = None
     except Exception as e:
         st.error(f"Error configuring Google AI SDK: {e}")
+        logger.error(f"Google AI SDK Config Error: {e}\n{traceback.format_exc()}")
         GOOGLE_API_KEY = None
 else:
-    # Provide a clearer warning if the key is missing IN the .env file vs. the file not found
     if os.path.exists(".env"):
          st.warning("Google API key not found in the .env file! Chatbot requires a valid GOOGLE_API_KEY.", icon="🔑")
     else:
          st.warning(".env file not found. Chatbot functionality requires a .env file with a valid GOOGLE_API_KEY.", icon="📄")
+
+
+# --- Initialize Roboflow Model (Cached) ---
+# <<< ADDED: Function to load and cache the Roboflow model >>>
+@st.cache_resource
+def load_roboflow_model():
+    """Loads the Roboflow model, returns None on failure."""
+    if not ROBOFLOW_API_KEY:
+        st.error("Roboflow API Key (ROBOFLOW_API_KEY) not found in environment variables. Breed identification disabled.", icon="🔑")
+        return None
+    try:
+        logger.info("Initializing Roboflow (cached)...")
+        rf = Roboflow(api_key=ROBOFLOW_API_KEY)
+        logger.info(f"Accessing workspace (cached)...")
+        workspace = rf.workspace()
+        logger.info(f"Accessing project: {ROBOFLOW_PROJECT_ID} (cached)")
+        project = workspace.project(ROBOFLOW_PROJECT_ID)
+        logger.info(f"Loading model version: {ROBOFLOW_MODEL_VERSION} (cached)")
+        model = project.version(ROBOFLOW_MODEL_VERSION).model
+        logger.info("Roboflow model loaded successfully (cached).")
+        return model
+    except Exception as e:
+        st.error(f"Failed to initialize Roboflow model: {e}. Check API key, project ID, version, and network connection. Breed identification disabled.")
+        logger.error(f"Roboflow Initialization Error: {e}\n{traceback.format_exc()}")
+        return None
+
+# <<< ADDED: Load the model when the script runs >>>
+roboflow_model = load_roboflow_model()
 
 
 # --- Database Connection ---
@@ -54,29 +109,43 @@ else:
 def get_connection():
     """Establishes connection to the SQLite database."""
     try:
-        return sqlite3.connect('Cows.db', check_same_thread=False) # Allow multithreading for Streamlit
+        db_name = 'Cows.db'
+        logger.info(f"Connecting to database: {db_name}") # Log which DB is used
+        return sqlite3.connect(db_name, check_same_thread=False)
     except sqlite3.Error as e:
         st.error(f"Database connection error: {e}")
+        logger.error(f"Database Connection Error: {e}\n{traceback.format_exc()}")
         return None
 
 # --- Helper Functions ---
-@st.cache_data # Cache image loading
+@st.cache_data
 def load_image(image_path):
     """Loads an image using PIL, returns None if path is invalid."""
-    if image_path and os.path.exists(image_path):
+    full_path = os.path.join("images", os.path.basename(image_path))
+    if os.path.exists(full_path):
         try:
-            return Image.open(image_path)
-        except Exception:
+            return Image.open(full_path)
+        except Exception as e:
+            logger.error(f"Error loading image {full_path}: {e}")
             return None
-    return None
+    else:
+        # Log if image not found, but don't show st.warning in UI unless necessary
+        logger.warning(f"Helper: Image file not found at path: {full_path}")
+        return None
+
 
 def display_image(image_path, caption="", width=None, use_container_width=True):
     """Safely displays an image if it exists using st.image."""
     img = load_image(image_path)
     if img:
         st.image(img, caption=caption, use_container_width=use_container_width if width is None else False, width=width)
+
     elif image_path:
+        # Use logger instead of st.warning to avoid cluttering UI for optional images
+        logger.warning(f"display_image: Image not found: {os.path.basename(image_path)}")
         st.warning(f"Image not found: {os.path.basename(image_path)}", icon="🖼️")
+
+
 
 # --- Cattle Breed Data (Moved here for better access if needed elsewhere) ---
 CATTLE_BREEDS_DATA = [
@@ -170,7 +239,7 @@ if selected_page == "Home":
 
     st.markdown("---")
     st.header("Key Features at a Glance")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3= st.columns(3)
     with col1:
         st.info("**Breed Identification & Info**", icon="🧬")
         st.caption("Use AI to identify breeds from images. Access detailed info on indigenous cattle.")
@@ -180,11 +249,10 @@ if selected_page == "Home":
     with col3:
         st.info("**Health & Lifecycle Management**", icon="❤️‍🩹")
         st.caption("Get tips for disease diagnosis assistance and managing cattle through different life stages.")
-
-    # Optional: Add a section for latest news or updates if applicable for a hackathon showcase
-    # st.subheader("Project Updates")
-    # st.success("Launched AI Breed Identification Beta!")
-    # st.success("Added new Government Schemes data for Gujarat.")
+    #with col4:
+        #st.subheader("Project Updates")
+        #st.success("Launched AI Breed Identification Beta!")
+        #st.success("Added new Government Schemes data for Gujarat.")
 
 
 # 2. Cattle Breed Information
@@ -307,7 +375,8 @@ elif selected_page == "Breeding":
                     pairs = cursor.fetchall()
                     if pairs:
                         df_pairs = pd.DataFrame(pairs, columns=["Cattle 1", "Cattle 2", "Goal", "Score", "Status", "Timestamp"])
-                        df_pairs['Timestamp'] = pd.to_datetime(df_pairs['Timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+                        df_pairs['Timestamp'] = pd.to_datetime(df_pairs['Timestamp'], errors='coerce', format='ISO8601', cache=True)
+                        df_pairs['Timestamp'] = df_pairs['Timestamp'].dt.strftime('%Y-%m-%d %H:%M')
                         st.dataframe(df_pairs, use_container_width=True, hide_index=True)
                     else:
                         st.info("No breeding suggestions recorded yet.")
@@ -571,81 +640,137 @@ elif selected_page == "Eco Practices":
                  st.caption(f"(Based on {irrigation_per_acre} mm/day application)")
 
 
-# 5. Image Identification
 elif selected_page == "Identify Breed":
     st.title("📸 AI Cattle Breed Identification")
-    st.markdown("Upload a clear image of a cow, and our AI will attempt to identify the breed.")
+    st.markdown("Upload a clear image of a cow for AI identification.")
     st.markdown("---")
-    
-    uploaded_file = st.file_uploader("Choose an image (JPG, PNG)...", type=["jpg", "jpeg", "png"], accept_multiple_files=False)
-    
-    if uploaded_file:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Uploaded Image")
-            st.image(uploaded_file, use_container_width=True)
-            img_bytes = uploaded_file.read()  # Read image bytes here
-        
-        with col2:
-            st.subheader("Analysis Results")
-            with st.spinner("🔎 Analyzing image... This may take a moment."):
-                try:
-                    files = {"image": (uploaded_file.name, img_bytes, uploaded_file.type)}
-                    response = requests.post(BACKEND_URL, files=files, timeout=60)  # 60 sec timeout
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        if "error" in result:
-                            st.error(f"Analysis Error: {result['error']}")
-                        elif "objects" in result:
-                            if result.get("image"):  # If annotated image is provided
-                                try:
-                                    image_data = base64.b64decode(result["image"].split(",")[1])
-                                    annotated_image = Image.open(io.BytesIO(image_data))
-                                    st.image(annotated_image, caption="Analysis Visualization", use_container_width=True)
-                                except Exception as img_err:
-                                    st.warning(f"Could not display result image: {img_err}")
-                            
-                            # Display detected breeds
-                            st.write("**Detected:**")
-                            if result["objects"]:
-                                for obj_info in result["objects"]:
-                                    if isinstance(obj_info, str):
-                                        st.success(f"- **{obj_info}**")
-                                    elif isinstance(obj_info, dict):
-                                        label = obj_info.get('label', 'Unknown Object')
-                                        confidence = obj_info.get('confidence')
-                                        display_text = f"- **{label}**"
-                                        if confidence:
-                                            display_text += f" (Confidence: {confidence*100:.1f}%)"
-                                        st.success(display_text)
-                            else:
-                                st.warning("No specific breeds or objects were confidently identified in the image.")
-                        else:
-                            st.error("Unexpected response format from the backend. Identification results missing.")
-                    
-                    elif response.status_code == 404:
-                        st.error(f"Error: Backend endpoint not found at {BACKEND_URL}. (404)")
-                    elif response.status_code == 422:
-                        st.error(f"Error: Invalid data sent to backend (e.g., wrong image format?). (422)")
-                        st.error(f"Server Response: {response.text[:300]}")
-                    elif response.status_code >= 500:
-                        st.error(f"Error: Backend server error (Status Code: {response.status_code}). Please check backend service.")
-                        st.error(f"Server Response: {response.text[:300]}")
-                    else:
-                        st.error(f"Error contacting analysis server (Status Code: {response.status_code}).")
-                        st.error(f"Response: {response.text[:300]}")
 
-                except requests.exceptions.ConnectionError:
-                    st.error(f"Connection Error: Could not connect to the backend service at {BACKEND_URL}. Please ensure it's running and accessible.")
-                except requests.exceptions.Timeout:
-                    st.error("The analysis request timed out. The server might be busy or the connection slow.")
-                except Exception as e:
-                    st.error(f"An unexpected error occurred during image analysis: {e}")
+    # Check if Roboflow model loaded successfully
+    if not roboflow_model:
+        st.error("Roboflow model failed to load. Breed Identification unavailable.", icon="🚫")
     else:
-        st.info("Upload a clear image file (JPG, PNG) containing cattle to begin identification.")
+        # Use key from original code
+        uploaded_file = st.file_uploader("Choose an image (JPG, PNG)...", type=["jpg", "jpeg", "png"], accept_multiple_files=False)
+
+        if uploaded_file:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("Uploaded Image")
+                st.image(uploaded_file, use_container_width=True)
+                img_bytes = uploaded_file.read() # Get bytes using .read() as per original code
+
+            with col2:
+                st.subheader("Analysis Results")
+                temp_image_path = None # Initialize path variable
+                try:
+                    with st.spinner("🔎 Analyzing image..."):
+                        # 1. Prepare Image
+                        pil_image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                        # Convert to OpenCV format for annotation
+                        image_cv2 = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
+                        # Optional Resizing (Keep commented out unless needed)
+                        # max_size = (1024, 1024); pil_image.thumbnail(max_size, Image.Resampling.LANCZOS)
+                        # image_cv2 = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
+                        # Save image temporarily for Roboflow predict method
+                        temp_image_path = f"temp_{uuid.uuid4()}.jpg"
+                        pil_image.save(temp_image_path)
+                        logger.info(f"Temp image saved: {temp_image_path}")
+
+                        # 2. Run Prediction Directly using the loaded Roboflow model
+                        logger.info(f"Running Roboflow prediction (v{ROBOFLOW_MODEL_VERSION})...")
+                        result = roboflow_model.predict(temp_image_path, confidence=CONFIDENCE_THRESHOLD, overlap=OVERLAP_THRESHOLD).json()
+                        logger.info("Prediction completed.")
+
+                        # Check for errors within the Roboflow response
+                        if "error" in result:
+                            error_msg = result.get("error", "Unknown Roboflow error")
+                            # Use st.error to display error in Streamlit UI
+                            st.error(f"Roboflow prediction failed: {error_msg}")
+                            logger.error(f"Roboflow API Error: {error_msg}")
+                            predictions = []
+                        else:
+                             predictions = result.get("predictions", [])
+
+                        if not predictions:
+                            # Use st.warning in Streamlit UI
+                            st.warning("No objects identified.")
+                        else:
+                            # 3. Process Predictions for Supervision
+                            logger.info(f"Found {len(predictions)} predictions.")
+                            labels, xyxys, confidences = [], [], []
+                            detected_objects_for_response = [] # Store info for display matching original format
+                            for item in predictions:
+                                xc, yc, w, h = item["x"], item["y"], item["width"], item["height"]
+                                conf, lbl = item["confidence"], item["class"]
+                                xmin, ymin, xmax, ymax = xc-w/2, yc-h/2, xc+w/2, yc+h/2
+                                xyxys.append([xmin, ymin, xmax, ymax])
+                                confidences.append(conf)
+                                formatted_label = f"{lbl} ({conf * 100:.1f}%)"
+                                labels.append(formatted_label)
+                                # Store dict for display matching original backend response structure
+                                detected_objects_for_response.append({"label": lbl, "confidence": conf})
 
 
+                            detections = sv.Detections(
+                                xyxy=np.array(xyxys),
+                                confidence=np.array(confidences),
+                                class_id=np.array(range(len(labels))) # Dummy IDs
+                            )
+
+                            # 4. Annotate Image using Supervision (Corrected logic)
+                            box_annotator = sv.BoxAnnotator(thickness=2)
+                            label_annotator = sv.LabelAnnotator() # Use default settings
+
+                            # Draw boxes first
+                            annotated_image_with_boxes = box_annotator.annotate(
+                                scene=image_cv2.copy(),
+                                detections=detections
+                            )
+                            # Draw labels on the image with boxes
+                            final_annotated_image = label_annotator.annotate(
+                                scene=annotated_image_with_boxes,
+                                detections=detections,
+                                labels=labels # Pass the formatted labels
+                            )
+                            logger.info("Image annotation completed.")
+
+                            # 5. Display Annotated Image in Streamlit
+                            st.image(final_annotated_image, channels="BGR", caption="Analysis Visualization", use_container_width=True)
+
+                            # 6. Display Detected Labels (matching original structure if needed)
+                            st.write("**Detected:**")
+                            if detected_objects_for_response:
+                                for obj_info in detected_objects_for_response:
+                                     # Display similar to how backend response was handled
+                                     label = obj_info.get('label', 'Unknown Object')
+                                     confidence = obj_info.get('confidence')
+                                     display_text = f"- **{label}**"
+                                     if confidence:
+                                         display_text += f" (Confidence: {confidence*100:.1f}%)"
+                                     st.success(display_text)
+                            # This 'else' should technically not be reachable if predictions is not empty
+                            # else:
+                            #    st.warning("No specific breeds identified (this message shouldn't appear).")
+
+                except Exception as e:
+                    # Display error in Streamlit UI
+                    st.error(f"An error occurred during image analysis: {e}")
+                    logger.error(f"Error (Identify Breed): {e}\n{traceback.format_exc()}")
+                finally:
+                    # Clean up temporary file reliably
+                    if temp_image_path and os.path.exists(temp_image_path):
+                        try:
+                            os.remove(temp_image_path)
+                            logger.info(f"Temp file deleted: {temp_image_path}")
+                        except Exception as del_err:
+                            logger.error(f"Error deleting temp file {temp_image_path}: {del_err}")
+        else:
+             # Kept your original info message
+            st.info("Upload a clear image file (JPG, PNG) containing cattle to begin identification.")
+
+# <<< --- END INTEGRATED IDENTIFY BREED SECTION --- >>>
 
 # 6. Chatbot
 elif selected_page == "Chatbot":

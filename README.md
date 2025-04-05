@@ -167,7 +167,8 @@ Access the deployed Streamlit app here: [Kamdhenu App](<https://kamadhenu.stream
 ```
 kamdhenu-app-main/
 │── app.py                   # Main Streamlit frontend
-│── new.py                   # FastAPI backend
+│── .streamlit/              # streamlit
+  │── secrets.toml
 │── setup_database.py        # Database setup script
 │── requirements.txt         # Dependencies
 │── .env                     # Environment variables (not committed)

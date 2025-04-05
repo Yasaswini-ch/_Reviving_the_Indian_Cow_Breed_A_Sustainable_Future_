@@ -23,7 +23,7 @@ import logging # Standard library
 
 # --- Configuration ---
 st.set_page_config(
-    page_title="Kamdhenu Program",
+    page_title="Kamadhenu Program",
     page_icon="🐄",
     layout="wide" # Use wide layout
 )

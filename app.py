@@ -216,7 +216,7 @@ selected_page = option_menu(
 
 # 1. Home Page
 if selected_page == "Home":
-    st.title("🐄 Kamdhenu Program: Sustainable Futures for Indian Farming 🇮🇳")
+    st.title("🐄 Kamadhenu Program: Sustainable Futures for Indian Farming 🇮🇳")
     st.markdown("---")
 
     # Banner/Hero Section
@@ -226,7 +226,7 @@ if selected_page == "Home":
     with col_txt:
         st.subheader("Empowering Farmers, Conserving Heritage, Building Resilience")
         st.markdown("""
-            Welcome to the digital hub for the Kamdhenu Program, dedicated to revitalizing Indian agriculture through:
+            Welcome to the digital hub for the Kamadhenu Program, dedicated to revitalizing Indian agriculture through:
             *   **Conservation:** Protecting and promoting valuable indigenous cattle breeds.
             *   **Innovation:** Utilizing AI and data for smarter farming decisions.
             *   **Sustainability:** Championing eco-friendly practices for long-term prosperity.

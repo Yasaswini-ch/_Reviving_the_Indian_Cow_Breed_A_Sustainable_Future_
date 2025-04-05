@@ -29,8 +29,6 @@ This application integrates multiple modules accessible through an intuitive web
 ### **Frontend:**
 - [Streamlit](https://streamlit.io/)
 - [streamlit-option-menu](https://github.com/victoryhb/streamlit-option-menu)
-
-### **Backend API:**
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Uvicorn](https://www.uvicorn.org/)
 
@@ -106,18 +104,35 @@ python setup_database.py
 ```
 
 ### **7. Running the Application**
-
-#### **a) Start the FastAPI Backend API**
-
-```bash
-uvicorn new:app --reload --host 127.0.0.1 --port 8000
-```
-
-#### **b) Start the Streamlit Frontend**
+#### Start the Streamlit Frontend**
 
 ```bash
 streamlit run app.py
 ```
+
+---
+## ☁️ Deployment
+
+To deploy on **Streamlit Community Cloud**:
+
+- Ensure `requirements.txt` is updated.
+- Use `secrets.toml` instead of `.env`:
+
+```toml
+# .streamlit/secrets.toml
+GOOGLE_API_KEY = "YOUR_GOOGLE_GEMINI_API_KEY_HERE"
+ROBOFLOW_API_KEY = "YOUR_ROBOFLOW_API_KEY_HERE"
+```
+
+- Modify `app.py`:
+
+```python
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
+ROBOFLOW_API_KEY = st.secrets.get("ROBOFLOW_API_KEY")
+```
+
+- Push to GitHub/GitLab and connect to Streamlit Cloud.
 
 ---
 
@@ -134,7 +149,7 @@ streamlit run app.py
 
 ## 🚀 Live Deployment
 
-Access the deployed Streamlit app here: [Kamdhenu App](<https://revivingtheindiancowbreedasustainablefuture-ouege4zdywjmgbgbty.streamlit.app/>)
+Access the deployed Streamlit app here: [Kamdhenu App](<https://kamadhenu.streamlit.app/>)
 
 ---
 

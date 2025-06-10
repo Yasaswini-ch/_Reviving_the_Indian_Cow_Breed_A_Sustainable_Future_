@@ -8,11 +8,11 @@ streamlit-option-menu==0.3.6
 
 # --- Data Handling & Manipulation ---
 pandas==2.2.2
-numpy==1.24.4
+numpy==1.24.4 # TensorFlow will bring its own compatible numpy, but pinning it can be okay.
 
 # --- APIs & External Services ---
 google-generativeai==0.4.0
-googletrans==4.0.0-rc1
+googletrans==4.0.0-rc1 # Be aware pre-releases can sometimes be less stable
 python-dotenv==1.0.1
 requests==2.31.0
 roboflow==1.1.11
@@ -25,8 +25,7 @@ opencv-python-headless==4.9.0.80
 supervision==0.16.0
 
 # --- Machine Learning / Deep Learning ---
-tensorflow==2.15.0
-keras==2.15.0
+tensorflow-cpu==2.15.0 # Explicitly CPU version, Keras is part of this
 
 # --- PDF & Excel Generation ---
 reportlab==4.1.0
@@ -34,6 +33,3 @@ openpyxl==3.1.2
 
 # --- Web & File Upload Handling ---
 python-multipart==0.0.9
-
-# --- Other Tools ---
-bcrypt==4.1.3

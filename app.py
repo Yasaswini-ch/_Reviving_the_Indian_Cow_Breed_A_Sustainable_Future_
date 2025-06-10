@@ -56,6 +56,16 @@ if st.session_state["current_lang"] != selected_language_code_from_widget:
 
 current_lang = st.session_state["current_lang"]
 
+def translate_and_call(st_func, text, lang, icon=None):
+    translated = translate_text(text, lang)
+    return st_func(f"**{translated}**", icon=icon)
+
+self.success = lambda text, icon=None: translate_and_call(st.success, text, current_lang_code, icon)
+self.warning = lambda text, icon=None: translate_and_call(st.warning, text, current_lang_code, icon)
+self.error   = lambda text, icon=None: translate_and_call(st.error, text, current_lang_code, icon)
+self.info    = lambda text, icon=None: translate_and_call(st.info, text, current_lang_code, icon)
+
+
 class TranslatedStreamlit:
     def __init__(self, current_lang_code):
         # Streamlit text functions wrappers

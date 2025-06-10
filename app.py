@@ -3352,7 +3352,7 @@ elif st.session_state.current_page == "Farm Products":  # Renamed from "Find a F
                             ts.markdown("---")
                             ts.subheader(translate_text("Payment Information", current_lang))
                             if upi_id_d:
-                                ts.success(translate_text(f"**Pay Farmer via UPI (e.g., GPay, PhonePe):** `{upi_id_d}`", current_lang), icon="💳")
+                                ts.success(f"**{translate_text('Pay Farmer via UPI (e.g., GPay, PhonePe):', current_lang)}** `{upi_id_d}`", icon="💳")
                                 ts.markdown(translate_text(f"You can use this UPI ID to pay **{full_name_d or username_d}** directly for their products.", current_lang))
                                 # You can optionally generate a generic UPI payment link here if there's no fixed price.
                                 # For farm products, prices are dynamic, so a direct link might not always make sense.

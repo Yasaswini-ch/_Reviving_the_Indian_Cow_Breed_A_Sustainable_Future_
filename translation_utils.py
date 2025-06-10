@@ -77,10 +77,6 @@ def language_selector_widget(default_lang_code: str = 'en'):
 
 # --- 5. Wrapper for Streamlit text display functions (Translation ONLY) ---
 def wrap_streamlit_text_function(st_func, current_lang_code):
-    """
-    Returns a wrapped version of a Streamlit text display function
-    that automatically translates text. No audio functionality.
-    """
     def wrapped_func(*args, **kwargs):
         if not args:
             return st_func(*args, **kwargs)
@@ -88,9 +84,15 @@ def wrap_streamlit_text_function(st_func, current_lang_code):
         original_text = args[0]
         if isinstance(original_text, str):
             translated_text = translate_text(original_text, current_lang_code)
-            result = st_func(translated_text, *args[1:], **kwargs)
-            # All audio-related calls (st.audio, text_to_audio) are removed.
-            return result
+
+            # ✅ Fix line break and bullet formatting issues
+            translated_text = translated_text.replace("\\n", "\n").replace(" *", "\n*").replace("•", "\n•")
+
+            # ✅ If using markdown, force proper rendering of line breaks
+            if st_func == st.markdown:
+                return st.markdown(translated_text, *args[1:], unsafe_allow_html=False, **kwargs)
+            else:
+                return st_func(translated_text, *args[1:], **kwargs)
         else:
-            return st_func(*args, **kwargs) # Pass through if not a string
+            return st_func(*args, **kwargs)
     return wrapped_func

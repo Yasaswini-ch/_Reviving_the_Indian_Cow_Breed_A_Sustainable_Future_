@@ -1,6 +1,5 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from translation_utils import translate_text, LANGUAGES
 import requests
 import pandas as pd
 import google.generativeai as genai
@@ -24,7 +23,8 @@ import uuid
 import traceback
 import logging
 import json
-from translation_utils import translate_text, wrap_streamlit_text_function, language_selector_widget
+from translation_utils import language_selector_widget, translate_text, wrap_streamlit_text_function, LANGUAGES
+
 # --- NEW IMPORTS FOR HEALTH FEATURES & EXCEL ---
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle

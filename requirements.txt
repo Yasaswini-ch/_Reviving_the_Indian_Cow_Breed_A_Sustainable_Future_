@@ -12,7 +12,7 @@ numpy==1.23.5
 
 # --- APIs & External Services ---
 google-generativeai >= 0.3.0
-googletrans >= 4.0.0rc1
+googletrans==4.0.0-rc1
 python-dotenv >= 1.0.0
 requests >= 2.28.0
 roboflow >= 1.1.0

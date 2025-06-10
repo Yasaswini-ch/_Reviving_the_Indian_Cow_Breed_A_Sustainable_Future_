@@ -25,7 +25,6 @@ import traceback
 import logging
 import json
 from translation_utils import language_selector_widget, translate_text, wrap_streamlit_text_function, LANGUAGES
-
 # --- NEW IMPORTS FOR HEALTH FEATURES & EXCEL ---
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -3354,6 +3353,7 @@ elif st.session_state.current_page == "Farm Products":  # Renamed from "Find a F
                             if upi_id_d:
                                 ts.success(f"**{translate_text('Pay Farmer via UPI (e.g., GPay, PhonePe):', current_lang)}** `{upi_id_d}`", icon="💳")
                                 ts.markdown(translate_text(f"You can use this UPI ID to pay **{full_name_d or username_d}** directly for their products.", current_lang))
+                                # You can optionally generate a generic UPI payment link here if there's no fixed price.
                                 # For farm products, prices are dynamic, so a direct link might not always make sense.
                                 # Example if you wanted a generic link:
                                 # upi_generic_link = f"upi://pay?pa={upi_id_d}&pn={full_name_d or username_d}&cu=INR"

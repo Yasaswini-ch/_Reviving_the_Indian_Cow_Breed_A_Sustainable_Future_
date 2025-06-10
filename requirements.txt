@@ -32,3 +32,6 @@ supervision >= 0.16.0       # For drawing bounding boxes (check latest version c
 
 # --- Potentially Needed (Depending on exact setup/OS) ---
 python-multipart            # Required by FastAPI for File/UploadFile handling
+
+# --- Other Tools ---
+bcrypt==4.0.1

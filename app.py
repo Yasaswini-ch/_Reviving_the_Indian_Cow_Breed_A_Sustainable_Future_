@@ -56,29 +56,20 @@ if st.session_state["current_lang"] != selected_language_code_from_widget:
 
 current_lang = st.session_state["current_lang"]
 
-def translate_and_call(st_func, text, lang, icon=None):
-    translated = translate_text(text, lang)
-    return st_func(f"**{translated}**", icon=icon)
-
-self.success = lambda text, icon=None: translate_and_call(st.success, text, current_lang_code, icon)
-self.warning = lambda text, icon=None: translate_and_call(st.warning, text, current_lang_code, icon)
-self.error   = lambda text, icon=None: translate_and_call(st.error, text, current_lang_code, icon)
-self.info    = lambda text, icon=None: translate_and_call(st.info, text, current_lang_code, icon)
-
-
 class TranslatedStreamlit:
     def __init__(self, current_lang_code):
-        # Streamlit text functions wrappers
         self.write = wrap_streamlit_text_function(st.write, current_lang_code)
         self.title = wrap_streamlit_text_function(st.title, current_lang_code)
         self.header = wrap_streamlit_text_function(st.header, current_lang_code)
         self.subheader = wrap_streamlit_text_function(st.subheader, current_lang_code)
         self.markdown = wrap_streamlit_text_function(st.markdown, current_lang_code)
         self.caption = wrap_streamlit_text_function(st.caption, current_lang_code)
-        self.info = lambda text, icon: st.info(f"**{translate_text(text, current_lang_code)}**", icon=icon)
-        self.success = lambda text, icon=None: st.success(f"**{translate_text(text, current_lang_code)}**", icon=icon) # Added success
-        self.warning = lambda text, icon=None: st.warning(f"**{translate_text(text, current_lang_code)}**", icon=icon) # <--- ADD THIS LINE
-        self.error = lambda text, icon=None: st.error(f"**{translate_text(text, current_lang_code)}**", icon=icon)     # <--- ADD THIS LINE (Good to have)
+        self.text = wrap_streamlit_text_function(st.text, current_lang_code)
+        self.success = lambda text, icon=None: st.success(f"**{translate_text(text, current_lang_code)}**", icon=icon)
+        self.warning = lambda text, icon=None: st.warning(f"**{translate_text(text, current_lang_code)}**", icon=icon)
+        self.error = lambda text, icon=None: st.error(f"**{translate_text(text, current_lang_code)}**", icon=icon)
+        self.info = lambda text, icon=None: st.info(f"**{translate_text(text, current_lang_code)}**", icon=icon)
+
 
         # Internal dictionary for forum-specific string translations
         # These are used via ts['key'] syntax, as you've correctly updated in the forum code

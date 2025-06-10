@@ -21,9 +21,11 @@ LANGUAGES = {
 }
 
 
-def safe_translate(text, dest_lang='en'):
+def safe_translate(text: str, dest_lang: str) -> str:
     try:
         translated = GoogleTranslator(source='auto', target=dest_lang).translate(text)
+        # Restore line breaks that may have been lost
+        translated = translated.replace("\\n", "\n")
         return translated
     except Exception as e:
         return f"Translation error: {e}"

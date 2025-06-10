@@ -1,44 +1,40 @@
 # --- Core Frameworks ---
-streamlit>=1.20.0
-fastapi>=0.90.0
-uvicorn[standard]>=0.20.0
+streamlit >= 1.20.0
+fastapi >= 0.90.0
+uvicorn[standard] >= 0.20.0
 
 # --- Streamlit Components ---
-streamlit-option-menu>=0.3.0
+streamlit-option-menu >= 0.3.0
 
 # --- Data Handling & Manipulation ---
-pandas>=1.5.0
-numpy>=1.20.0
+pandas >= 1.5.0
+numpy >= 1.20.0
 
 # --- APIs & External Services ---
-google-generativeai>=0.3.0
-googletrans==4.0.0rc1
-python-dotenv>=1.0.0
-requests>=2.28.0
-roboflow>=1.1.0
-gTTS>=2.2.4
+google-generativeai >= 0.3.0
+googletrans >= 4.0.0rc1
+python-dotenv >= 1.0.0
+requests >= 2.28.0
+roboflow >= 1.1.0
+gTTS >= 2.2.4  # ✅ Added to fix deployment error
 
 # --- Image Processing & Computer Vision ---
-Pillow>=9.0.0
-opencv-python-headless>=4.5.0
-supervision>=0.16.0
+Pillow >= 9.0.0
+opencv-python-headless >= 4.5.0
+supervision >= 0.16.0
 
-# --- Machine Learning ---
-tensorflow>=2.11.0
-keras>=2.11.0
-
-# --- Database ---
-# sqlite3 is built-in
-bcrypt>=4.0.1
+# --- Machine Learning / Deep Learning ---
+tensorflow >= 2.10.0
+keras >= 2.10.0
 
 # --- PDF & Excel Generation ---
-reportlab>=3.6.12
+reportlab >= 3.6.0
+openpyxl >= 3.1.0  # Optional, useful for Excel writing
 
-# Optional: Uncomment if using Excel export explicitly
-# openpyxl>=3.0.10
+# --- Web & File Upload Handling ---
+python-multipart >= 0.0.6
 
-# --- File Upload Support for FastAPI ---
-python-multipart>=0.0.5
+# --- Other Tools ---
+bcrypt >= 4.0.1
 
-# --- Logging, JSON & Utilities ---
-# (All are built-in: logging, json, uuid, traceback, io, base64, datetime, os, random)
+# --- For logging and JSON handling (usually built-in, but no harm pinning)

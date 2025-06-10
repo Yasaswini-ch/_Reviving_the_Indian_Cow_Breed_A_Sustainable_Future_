@@ -4284,7 +4284,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("🧬 Breed Information & AI ID", current_lang))
             display_static_image("feature_breed_id.png", use_container_width=True) # Placeholder: images/feature_breed_id.jpg
             st.caption(translate_text("Identify breeds with AI from images. Access detailed profiles of numerous indigenous cattle, their characteristics, and utility.", current_lang))
-            if st.button(translate_text("Discover Breeds", current_lang, key="auto_btn_34"), key="home_btn_breedinfo", use_container_width=True):
+            if st.button(translate_text("Discover Breeds", current_lang), key="home_btn_breedinfo", use_container_width=True):
                 st.session_state.current_page = "Breed Info"; st.rerun()
 
     with feat_cols[1]:

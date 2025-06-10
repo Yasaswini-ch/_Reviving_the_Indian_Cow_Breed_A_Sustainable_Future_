@@ -22,21 +22,13 @@ LANGUAGES = {
     # Add more languages if needed
 }
 
-def safe_translate(text: str, dest_lang: str) -> str:
-    """
-    Translates text to the destination language using googletrans.
-    Cached separately to avoid re-creating translator inside @st.cache_data.
-    """
-    if not text:
-        return ""
 
+def safe_translate(text, dest_lang='en'):
     try:
-        translator = Translator()
-        translated = translator.translate(text, dest=dest_lang)
-        return translated.text
+        translated = GoogleTranslator(source='auto', target=dest_lang).translate(text)
+        return translated
     except Exception as e:
-        st.error(f"Translation error: {e}")
-        return text  # Return original on error
+        return f"Translation error: {e}"
 
 
 @st.cache_data(ttl=3600)

@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+from googletrans import Translator, LANGUAGES
 import requests
 import pandas as pd
 import google.generativeai as genai
@@ -58,18 +59,17 @@ current_lang = st.session_state["current_lang"]
 
 class TranslatedStreamlit:
     def __init__(self, current_lang_code):
+        # Streamlit text functions wrappers
         self.write = wrap_streamlit_text_function(st.write, current_lang_code)
         self.title = wrap_streamlit_text_function(st.title, current_lang_code)
         self.header = wrap_streamlit_text_function(st.header, current_lang_code)
         self.subheader = wrap_streamlit_text_function(st.subheader, current_lang_code)
         self.markdown = wrap_streamlit_text_function(st.markdown, current_lang_code)
         self.caption = wrap_streamlit_text_function(st.caption, current_lang_code)
-        self.text = wrap_streamlit_text_function(st.text, current_lang_code)
-        self.success = lambda text, icon=None: st.success(f"**{translate_text(text, current_lang_code)}**", icon=icon)
-        self.warning = lambda text, icon=None: st.warning(f"**{translate_text(text, current_lang_code)}**", icon=icon)
-        self.error = lambda text, icon=None: st.error(f"**{translate_text(text, current_lang_code)}**", icon=icon)
-        self.info = lambda text, icon=None: st.info(f"**{translate_text(text, current_lang_code)}**", icon=icon)
-
+        self.info = lambda text, icon: st.info(f"**{translate_text(text, current_lang_code)}**", icon=icon)
+        self.success = lambda text, icon=None: st.success(f"**{translate_text(text, current_lang_code)}**", icon=icon) # Added success
+        self.warning = lambda text, icon=None: st.warning(f"**{translate_text(text, current_lang_code)}**", icon=icon) # <--- ADD THIS LINE
+        self.error = lambda text, icon=None: st.error(f"**{translate_text(text, current_lang_code)}**", icon=icon)     # <--- ADD THIS LINE (Good to have)
 
         # Internal dictionary for forum-specific string translations
         # These are used via ts['key'] syntax, as you've correctly updated in the forum code
@@ -455,7 +455,7 @@ def render_main_community_forum_ui():
                 
                 st.write(post_forum.get("text","")) 
                 
-                if st.button(ts["upvote_button"].format(count=post_forum.get('upvotes', 0)), key=f"upvote_{post_forum['id']}"): # Changed to ts["key"].format()
+                if st.button(ts["upvote_button"].format(count=post_forum.get('upvotes', 0, key="auto_btn_0")), key=f"upvote_{post_forum['id']}"): # Changed to ts["key"].format()
                     post_forum['upvotes'] = post_forum.get('upvotes', 0) + 1
                     save_main_forum_posts(st.session_state.main_forum_posts)
                     st.rerun()
@@ -1402,7 +1402,7 @@ if selected_page == "Login":
     if st.session_state.logged_in:
         st.success(f"You are already logged in as {st.session_state.username} ({st.session_state.role})!")
         default_redirect = "My Herd" if st.session_state.role == "farmer" else "Browse Cattle"
-        if st.button(f"Go to {default_redirect}"):
+        if st.button(f"Go to {default_redirect}", key="auto_btn_2"):
             st.session_state.current_page = default_redirect; st.rerun()
     else:
         with st.form("login_form"):
@@ -1436,7 +1436,7 @@ if selected_page == "Login":
                         else: st.error("Invalid username or password.")
                     else: st.error("Database connection failed.")
         st.markdown("---"); st.write("Don't have an account?")
-        if st.button("Register Here"): st.session_state.current_page = "Register"; st.rerun()
+        if st.button("Register Here", key="auto_btn_3"): st.session_state.current_page = "Register"; st.rerun()
 
 # 0. Registration Page
 elif selected_page == "Register":
@@ -1508,7 +1508,7 @@ elif selected_page == "Register":
                         st.error(translate_text("Database connection failed.", current_lang))
         st.markdown("---")
         st.write(translate_text("Already have an account?", current_lang))
-        if st.button(translate_text("Login Here", current_lang)): 
+        if st.button(translate_text("Login Here", current_lang, key="auto_btn_4")): 
             st.session_state.current_page = "Login"
             st.rerun()
 # 0. Logout
@@ -1520,7 +1520,7 @@ elif selected_page == "Logout":
         st.session_state.logged_in = False # Explicitly set
         st.session_state.current_page = "Home"; st.success("Logged out."); st.rerun()
     else: st.info("Not logged in.");
-    if st.button("Go to Home"): st.session_state.current_page = "Home"; st.rerun()
+    if st.button("Go to Home", key="auto_btn_5"): st.session_state.current_page = "Home"; st.rerun()
 
 # # CATTLE_BREEDS_DATA should be defined globally
 # --- Start of "My Herd" Page ---
@@ -2053,10 +2053,10 @@ elif selected_page == "My Herd" and st.session_state.logged_in and st.session_st
                                 st.markdown(reminder_text_html, unsafe_allow_html=True)
                                 act_cols_animal_tab = st.columns(2)
                                 with act_cols_animal_tab[0]:
-                                    if st.button(translate_text("✅ Mark Completed",current_lang), key=f"complete_anim_tab_rem_{r_id_animal}", type="primary", use_container_width=True):
+                                    if st.button(translate_text("✅ Mark Completed",current_lang, key="auto_btn_6"), key=f"complete_anim_tab_rem_{r_id_animal}", type="primary", use_container_width=True):
                                         handle_specific_animal_reminder_action(r_id_animal, "completed", f"Completed for {name_tab or tag_id_tab}")
                                 with act_cols_animal_tab[1]:
-                                    if st.button(translate_text("🚫 Dismiss",current_lang), key=f"dismiss_anim_tab_rem_{r_id_animal}", use_container_width=True):
+                                    if st.button(translate_text("🚫 Dismiss",current_lang, key="auto_btn_7"), key=f"dismiss_anim_tab_rem_{r_id_animal}", use_container_width=True):
                                         handle_specific_animal_reminder_action(r_id_animal, "dismissed", f"Dismissed for {name_tab or tag_id_tab}")
                                 st.markdown("---")
                         else: st.info(translate_text("No pending reminders for this animal.",current_lang))
@@ -2556,11 +2556,11 @@ elif selected_page == "Nutrition Planner" and st.session_state.logged_in:
                      remove_ration_item(i)
                      st.experimental_rerun() # Rerun to reflect removal
 
-        if st.button(translate_text("➕ Add Feedstuff to Ration",current_lang), on_click=add_ration_item):
+        if st.button(translate_text("➕ Add Feedstuff to Ration",current_lang, key="auto_btn_9"), on_click=add_ration_item):
             pass # Action handled by on_click
 
         st.markdown("---")
-        if st.button(translate_text("📊 Analyze Formulated Ration",current_lang), type="primary"):
+        if st.button(translate_text("📊 Analyze Formulated Ration",current_lang, key="auto_btn_10"), type="primary"):
             if not any(item['feed_data'] for item in st.session_state.ration_items):
                 st.warning(translate_text("Please add at least one feedstuff to the ration and select it.",current_lang))
             elif requirements["DM_kg"] == 0: # Check if requirements were calculated
@@ -2883,7 +2883,7 @@ if selected_page == "Farmer Dashboard" and st.session_state.logged_in and st.ses
     
     ts.markdown("##### 🏛️ Government Schemes & Resources")
     st.info(translate_text("Explore available government subsidies and schemes for cattle farming. Check the 'Schemes' section for more.", current_lang))
-    if st.button(translate_text("View Government Schemes", current_lang), key="view_schemes_pb"):
+    if st.button(translate_text("View Government Schemes", current_lang, key="auto_btn_12"), key="view_schemes_pb"):
         st.session_state.current_page = "Govt Schemes" # Assuming you have a page for this
         st.rerun()
 
@@ -3147,7 +3147,7 @@ elif st.session_state.current_page == "Browse Cattle":  # Assuming access contro
 
                             st.markdown(translate_text("**Note:** This platform currently does not process payments directly. All financial transactions are to be handled between the buyer and seller. Please ensure to verify all details before making payments.", current_lang))
                             
-                            if st.button(translate_text(f"🤝 Mark as 'Interested / Payment Discussed'", current_lang), key=f"mark_interested_{listing_id}"):
+                            if st.button(translate_text(f"🤝 Mark as 'Interested / Payment Discussed'", current_lang, key="auto_btn_14"), key=f"mark_interested_{listing_id}"):
                                 st.success(translate_text("Your interest has been noted. Please contact the seller to finalize the purchase and payment.", current_lang))
                                 # This is where you would ideally log this interest in your database.
 
@@ -3164,9 +3164,9 @@ elif st.session_state.current_page == "Browse Cattle":  # Assuming access contro
 
                             if st.session_state.logged_in:
                                 if is_already_saved_to_wishlist:
-                                    st.button(translate_text("❤️ Tracking This Item", current_lang), key=f"wishlist_saved_cattle_{listing_id}", disabled=True, type="primary")
+                                    st.button(translate_text("❤️ Tracking This Item", current_lang, key="auto_btn_15"), key=f"wishlist_saved_cattle_{listing_id}", disabled=True, type="primary")
                                 else:
-                                    if st.button(translate_text("➕ Mark as Interested & Track", current_lang), key=f"wishlist_save_cattle_{listing_id}"):
+                                    if st.button(translate_text("➕ Mark as Interested & Track", current_lang, key="auto_btn_16"), key=f"wishlist_save_cattle_{listing_id}"):
                                         try:
                                             cursor.execute("""INSERT INTO user_saved_listings
                                                             (user_id, listing_type, original_listing_id)
@@ -3666,9 +3666,9 @@ elif st.session_state.current_page == "Browse Machinery":  # Assuming access con
                         
                         if st.session_state.logged_in:
                             if is_already_saved_mach_wishlist:
-                                st.button(translate_text("❤️ Tracking This Item", current_lang), key=f"wishlist_saved_mach_{machinery_id}", disabled=True, type="primary")
+                                st.button(translate_text("❤️ Tracking This Item", current_lang, key="auto_btn_18"), key=f"wishlist_saved_mach_{machinery_id}", disabled=True, type="primary")
                             else:
-                                if st.button(translate_text("➕ Mark as Interested & Track", current_lang), key=f"wishlist_save_mach_{machinery_id}"):
+                                if st.button(translate_text("➕ Mark as Interested & Track", current_lang, key="auto_btn_19"), key=f"wishlist_save_mach_{machinery_id}"):
                                     try:
                                         cursor.execute("""INSERT INTO user_saved_listings
                                                              (user_id, listing_type, original_listing_id)
@@ -4284,7 +4284,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("🧬 Breed Information & AI ID", current_lang))
             display_static_image("feature_breed_id.png", use_container_width=True) # Placeholder: images/feature_breed_id.jpg
             st.caption(translate_text("Identify breeds with AI from images. Access detailed profiles of numerous indigenous cattle, their characteristics, and utility.", current_lang))
-            if st.button(translate_text("Discover Breeds", current_lang), key="home_btn_breedinfo", use_container_width=True):
+            if st.button(translate_text("Discover Breeds", current_lang, key="auto_btn_34"), key="home_btn_breedinfo", use_container_width=True):
                 st.session_state.current_page = "Breed Info"; st.rerun()
 
     with feat_cols[1]:
@@ -4292,7 +4292,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("🌱 Eco-Practices & Sustainability", current_lang))
             display_static_image("feature_eco.png", use_container_width=True) # Placeholder: images/feature_eco.jpg
             st.caption(translate_text("Learn about organic farming, water conservation, manure management, biogas, and other sustainable techniques to enhance farm resilience.", current_lang))
-            if st.button(translate_text("Learn Eco Practices", current_lang), key="home_btn_eco", use_container_width=True):
+            if st.button(translate_text("Learn Eco Practices", current_lang, key="auto_btn_35"), key="home_btn_eco", use_container_width=True):
                 st.session_state.current_page = "Eco Practices"; st.rerun()
 
     with feat_cols[2]:
@@ -4300,7 +4300,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("❤️‍🩹 Health, Lifecycle & Diagnosis", current_lang))
             display_static_image("feature_health.png", use_container_width=True) # Placeholder: images/feature_health.jpg
             st.caption(translate_text("Get preliminary diagnosis assistance (symptom & image-based). Manage cattle through all life stages with expert guidance.", current_lang))
-            if st.button(translate_text("Explore Health Tools", current_lang), key="home_btn_health", use_container_width=True):
+            if st.button(translate_text("Explore Health Tools", current_lang, key="auto_btn_36"), key="home_btn_health", use_container_width=True):
                 st.session_state.current_page = "Diagnosis"; st.rerun()
     
     st.markdown("<br>", unsafe_allow_html=True) # Spacer
@@ -4311,7 +4311,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("🛒 Marketplace & Connections", current_lang))
             display_static_image("feature_marketplace.png", use_container_width=True) # Placeholder: images/feature_marketplace.jpg
             st.caption(translate_text("Connect with buyers and sellers for cattle, machinery, and farm products. Facilitating fair trade within the community.", current_lang))
-            if st.button(translate_text("Visit Marketplace", current_lang), key="home_btn_market", use_container_width=True):
+            if st.button(translate_text("Visit Marketplace", current_lang, key="auto_btn_37"), key="home_btn_market", use_container_width=True):
                 # Navigate to a relevant marketplace page, e.g., Browse Cattle or a new central Market page
                 st.session_state.current_page = "Farm Products"; st.rerun()
 
@@ -4321,7 +4321,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("💬 Community & Knowledge Hub", current_lang))
             display_static_image("feature_community.png", use_container_width=True) # Placeholder: images/feature_community.jpg
             st.caption(translate_text("Join discussions, ask questions, and share experiences with fellow farmers, buyers, and experts in our Community Forum.", current_lang))
-            if st.button(translate_text("Join the Community", current_lang), key="home_btn_forum", use_container_width=True):
+            if st.button(translate_text("Join the Community", current_lang, key="auto_btn_38"), key="home_btn_forum", use_container_width=True):
                 st.session_state.current_page = "Community Network"; st.rerun()
 
     with feat_cols2[2]:
@@ -4329,7 +4329,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             st.subheader(translate_text("💰 Financial Guidance", current_lang))
             display_static_image("feature_finance.png", use_container_width=True) # Placeholder: images/feature_finance.jpg
             st.caption(translate_text("Explore government schemes, estimate cattle valuation, and use our loan calculator to plan your farm finances effectively.", current_lang))
-            if st.button(translate_text("Financial Tools", current_lang), key="home_btn_finance", use_container_width=True):
+            if st.button(translate_text("Financial Tools", current_lang, key="auto_btn_39"), key="home_btn_finance", use_container_width=True):
                 st.session_state.current_page = "Price Trends"; st.rerun() # Price Trends has the loan calc
 
     st.markdown("---")
@@ -4340,15 +4340,15 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
         st.subheader(translate_text("🚀 Get Started Today!", current_lang))
         if not st.session_state.logged_in:
             st.markdown(translate_text("New to the Kamadhenu Program? Register now to unlock personalized features!", current_lang))
-            if st.button(translate_text("📝 Register Your Account", current_lang), type="primary", use_container_width=True):
+            if st.button(translate_text("📝 Register Your Account", current_lang, key="auto_btn_40"), type="primary", use_container_width=True):
                 st.session_state.current_page = "Register"; st.rerun()
             st.markdown(translate_text("Already have an account?", current_lang))
-            if st.button(translate_text("👤 Login to Your Dashboard", current_lang), use_container_width=True):
+            if st.button(translate_text("👤 Login to Your Dashboard", current_lang, key="auto_btn_41"), use_container_width=True):
                 st.session_state.current_page = "Login"; st.rerun()
         else:
             st.markdown(translate_text(f"Welcome back, **{st.session_state.username}**! What would you like to do today?", current_lang))
             default_dash = "Farmer Dashboard" if st.session_state.role == "farmer" else "Buyer Dashboard"
-            if st.button(translate_text(f"Go to My Dashboard ➔", current_lang), type="primary", use_container_width=True):
+            if st.button(translate_text(f"Go to My Dashboard ➔", current_lang, key="auto_btn_42"), type="primary", use_container_width=True):
                 st.session_state.current_page = default_dash; st.rerun()
 
     with col_cta2:
@@ -4604,7 +4604,7 @@ elif selected_page == "Temple Connect":
 elif selected_page == "Breeding":
     if not st.session_state.logged_in: # Protect page
         st.warning(translate_text("You need to be logged in to access the Breeding Program.",current_lang))
-        if st.button(translate_text("Login",current_lang)): st.session_state.current_page = "Login"; st.experimental_rerun()
+        if st.button(translate_text("Login",current_lang, key="auto_btn_43")): st.session_state.current_page = "Login"; st.experimental_rerun()
     else:
         ts.title("🧬 Breeding Program Manager")
         ts.markdown("Plan, suggest, and track cattle breeding activities for desired traits.")
@@ -4629,7 +4629,7 @@ elif selected_page == "Breeding":
                     cattle_2 = st.text_input(translate_text("Name/ID of Cattle 2 (from your herd or general):",current_lang))
                     goal = st.selectbox(translate_text("Select Primary Breeding Goal",current_lang), [translate_text("High Milk Yield",current_lang), translate_text("Disease Resistance",current_lang),translate_text( "Drought Tolerance",current_lang),translate_text( "Breed Purity",current_lang), translate_text("Temperament",current_lang), translate_text("Dual Purpose (Milk & Draft)",current_lang)])
 
-                    if st.button(translate_text("Suggest Pair",current_lang), type="primary"):
+                    if st.button(translate_text("Suggest Pair",current_lang, key="auto_btn_44"), type="primary"):
                         if cattle_1 and cattle_2 and cattle_1.strip().lower() != cattle_2.strip().lower():
                             try:
                                 genetic_score = random.randint(55, 95)
@@ -4695,14 +4695,14 @@ elif selected_page == "Eco Practices":
             if ORG_FARMING_SUBHEADER_ENGLISH in VIDEO_URLS:
                 # Use a unique key for each button to avoid Streamlit errors
                 button_key_organic = f"show_organic_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_organic):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_45"), key=button_key_organic):
                     st.session_state[button_key_organic + "_clicked"] = True # Set state to show video
 
                 # Display the video only if the button was clicked
                 if st.session_state.get(button_key_organic + "_clicked", False):
                     st.video(VIDEO_URLS[ORG_FARMING_SUBHEADER_ENGLISH])
                     # Optionally, add a button to hide the video again
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_organic_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_46"), key=f"hide_organic_video_{current_lang}"):
                         st.session_state[button_key_organic + "_clicked"] = False # Reset state to hide video
                         st.rerun() # Rerun to update the display
 
@@ -4713,11 +4713,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(CROP_ROTATION_DESC_ENGLISH, current_lang))
             if CROP_ROTATION_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_crop_rotation = f"show_crop_rotation_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_crop_rotation):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_47"), key=button_key_crop_rotation):
                     st.session_state[button_key_crop_rotation + "_clicked"] = True
                 if st.session_state.get(button_key_crop_rotation + "_clicked", False):
                     st.video(VIDEO_URLS[CROP_ROTATION_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_crop_rotation_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_48"), key=f"hide_crop_rotation_video_{current_lang}"):
                         st.session_state[button_key_crop_rotation + "_clicked"] = False
                         st.rerun()
 
@@ -4730,11 +4730,11 @@ elif selected_page == "Eco Practices":
             if "Drip Irrigation" in VIDEO_URLS: # Check for the specific Drip Irrigation key
                 st.subheader(translate_text("Learn Drip Irrigation", current_lang)) # Display a subheader for this specific video
                 button_key_drip_irrigation = f"show_drip_irrigation_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_drip_irrigation):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_49"), key=button_key_drip_irrigation):
                     st.session_state[button_key_drip_irrigation + "_clicked"] = True
                 if st.session_state.get(button_key_drip_irrigation + "_clicked", False):
                     st.video(VIDEO_URLS["Drip Irrigation"])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_drip_irrigation_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_50"), key=f"hide_drip_irrigation_video_{current_lang}"):
                         st.session_state[button_key_drip_irrigation + "_clicked"] = False
                         st.rerun()
 
@@ -4746,11 +4746,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(IPM_DESC_ENGLISH, current_lang))
             if IPM_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_ipm = f"show_ipm_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_ipm):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_51"), key=button_key_ipm):
                     st.session_state[button_key_ipm + "_clicked"] = True
                 if st.session_state.get(button_key_ipm + "_clicked", False):
                     st.video(VIDEO_URLS[IPM_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_ipm_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_52"), key=f"hide_ipm_video_{current_lang}"):
                         st.session_state[button_key_ipm + "_clicked"] = False
                         st.rerun()
 
@@ -4761,11 +4761,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(MANURE_MGMT_DESC_ENGLISH, current_lang))
             if MANURE_MGMT_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_manure_mgmt = f"show_manure_mgmt_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_manure_mgmt):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_53"), key=button_key_manure_mgmt):
                     st.session_state[button_key_manure_mgmt + "_clicked"] = True
                 if st.session_state.get(button_key_manure_mgmt + "_clicked", False):
                     st.video(VIDEO_URLS[MANURE_MGMT_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_manure_mgmt_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_54"), key=f"hide_manure_mgmt_video_{current_lang}"):
                         st.session_state[button_key_manure_mgmt + "_clicked"] = False
                         st.rerun()
 
@@ -4776,11 +4776,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(VERMICOMPOSTING_DESC_ENGLISH, current_lang))
             if VERMICOMPOSTING_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_vermicomposting = f"show_vermicomposting_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_vermicomposting):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_55"), key=button_key_vermicomposting):
                     st.session_state[button_key_vermicomposting + "_clicked"] = True
                 if st.session_state.get(button_key_vermicomposting + "_clicked", False):
                     st.video(VIDEO_URLS[VERMICOMPOSTING_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_vermicomposting_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_56"), key=f"hide_vermicomposting_video_{current_lang}"):
                         st.session_state[button_key_vermicomposting + "_clicked"] = False
                         st.rerun()
 
@@ -4792,11 +4792,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(BIOGAS_DESC_ENGLISH, current_lang))
             if BIOGAS_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_biogas = f"show_biogas_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_biogas):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_57"), key=button_key_biogas):
                     st.session_state[button_key_biogas + "_clicked"] = True
                 if st.session_state.get(button_key_biogas + "_clicked", False):
                     st.video(VIDEO_URLS[BIOGAS_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_biogas_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_58"), key=f"hide_biogas_video_{current_lang}"):
                         st.session_state[button_key_biogas + "_clicked"] = False
                         st.rerun()
 
@@ -4807,11 +4807,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(AGROFORESTRY_DESC_ENGLISH, current_lang))
             if AGROFORESTRY_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_agroforestry = f"show_agroforestry_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_agroforestry):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_59"), key=button_key_agroforestry):
                     st.session_state[button_key_agroforestry + "_clicked"] = True
                 if st.session_state.get(button_key_agroforestry + "_clicked", False):
                     st.video(VIDEO_URLS[AGROFORESTRY_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_agroforestry_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_60"), key=f"hide_agroforestry_video_{current_lang}"):
                         st.session_state[button_key_agroforestry + "_clicked"] = False
                         st.rerun()
 
@@ -4822,11 +4822,11 @@ elif selected_page == "Eco Practices":
             st.markdown(translate_text(ROTATIONAL_GRAZING_DESC_ENGLISH, current_lang))
             if ROTATIONAL_GRAZING_SUBHEADER_ENGLISH in VIDEO_URLS:
                 button_key_rotational_grazing = f"show_rotational_grazing_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang), key=button_key_rotational_grazing):
+                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_61"), key=button_key_rotational_grazing):
                     st.session_state[button_key_rotational_grazing + "_clicked"] = True
                 if st.session_state.get(button_key_rotational_grazing + "_clicked", False):
                     st.video(VIDEO_URLS[ROTATIONAL_GRAZING_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_rotational_grazing_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_62"), key=f"hide_rotational_grazing_video_{current_lang}"):
                         st.session_state[button_key_rotational_grazing + "_clicked"] = False
                         st.rerun()
 
@@ -4876,11 +4876,11 @@ elif selected_page == "Eco Practices":
             if PANCHAGAVYA_SUBHEADER_ENGLISH in VIDEO_URLS:
                 # This was previously just a subheader; now it's a button
                 button_key_panchagavya = f"show_panchagavya_video_{current_lang}"
-                if st.button(translate_text("Watch Video on Panchagavya", current_lang), key=button_key_panchagavya):
+                if st.button(translate_text("Watch Video on Panchagavya", current_lang, key="auto_btn_63"), key=button_key_panchagavya):
                     st.session_state[button_key_panchagavya + "_clicked"] = True
                 if st.session_state.get(button_key_panchagavya + "_clicked", False):
                     st.video(VIDEO_URLS[PANCHAGAVYA_SUBHEADER_ENGLISH])
-                    if st.button(translate_text("Hide Video", current_lang), key=f"hide_panchagavya_video_{current_lang}"):
+                    if st.button(translate_text("Hide Video", current_lang, key="auto_btn_64"), key=f"hide_panchagavya_video_{current_lang}"):
                         st.session_state[button_key_panchagavya + "_clicked"] = False
                         st.rerun() # Rerun to hide the video
 
@@ -4907,7 +4907,7 @@ elif selected_page == "Eco Practices":
             livestock_count = st.number_input(translate_text(LIVESTOCK_COUNT_LABEL_ENGLISH, current_lang), min_value=0, step=1)
             rice_paddy_area = st.number_input(translate_text(RICE_PADDY_AREA_LABEL_ENGLISH, current_lang), min_value=0.0, step=0.1)
 
-            if st.button(translate_text(ESTIMATE_FOOTPRINT_BUTTON_ENGLISH, current_lang)):
+            if st.button(translate_text(ESTIMATE_FOOTPRINT_BUTTON_ENGLISH, current_lang, key="auto_btn_65")):
                 fuel_emission = fuel_usage * 2.68
                 fertilizer_emission = fertilizer_usage * 4.5
                 livestock_emission = livestock_count * (1800 / 12)
@@ -4923,7 +4923,7 @@ elif selected_page == "Eco Practices":
             irrigation_per_acre = st.number_input(translate_text(IRRIGATION_DEPTH_LABEL_ENGLISH, current_lang), min_value=0.0, step=1.0, value=5.0)
             days_irrigated = st.slider(translate_text(DAYS_IRRIGATED_LABEL_ENGLISH, current_lang), 1, 31, 20)
 
-            if st.button(translate_text(ESTIMATE_WATER_USAGE_BUTTON_ENGLISH, current_lang)):
+            if st.button(translate_text(ESTIMATE_WATER_USAGE_BUTTON_ENGLISH, current_lang, key="auto_btn_66")):
                 liters_per_acre_per_day = 4046.86 * (irrigation_per_acre / 1000) * 1000
                 monthly_water_usage = field_size * liters_per_acre_per_day * days_irrigated
                 st.success(translate_text(ESTIMATED_WATER_USAGE_SUCCESS_ENGLISH.format(monthly_water_usage=monthly_water_usage), current_lang))
@@ -5134,7 +5134,7 @@ elif selected_page == "Price Trends":
         with col6_val:
             is_pregnant_val = st.checkbox(translate_text("Currently Pregnant?",current_lang), key="calc_pregnant_val")
 
-        if st.button(translate_text("Estimate Valuation",current_lang), type="primary", key="btn_estimate"):
+        if st.button(translate_text("Estimate Valuation",current_lang, key="auto_btn_67"), type="primary", key="btn_estimate"):
             base_price = 30000
             breed_factors = {
                 "Gir": 1.8, "Sahiwal": 1.9, "Red Sindhi": 1.7, "Tharparkar": 1.6,
@@ -5222,7 +5222,7 @@ elif selected_page == "Price Trends":
         monthly_farm_expenses = st.number_input(translate_text("Estimated Monthly Farm Expenses (feed, labor, vet, etc.) (₹):",current_lang), min_value=0.0, value=5000.0, step=500.0, key="loan_expenses")
 
 
-        if st.button(translate_text("Calculate Loan EMI & Estimate Feasibility",current_lang), type="primary", key="btn_loan_calc"):
+        if st.button(translate_text("Calculate Loan EMI & Estimate Feasibility",current_lang, key="auto_btn_68"), type="primary", key="btn_loan_calc"):
             if loan_amount > 0 and annual_interest_rate > 0 and loan_tenure_years > 0:
                 # Calculate EMI
                 monthly_interest_rate = (annual_interest_rate / 100) / 12
@@ -5299,7 +5299,7 @@ elif selected_page == "Diagnosis":
             conn = get_connection()
             if conn:
                 cursor = conn.cursor()
-                if st.button(translate_text("Suggest Potential Diseases (Symptom-Based)",current_lang), type="primary", key="btn_diagnose_symptoms"):
+                if st.button(translate_text("Suggest Potential Diseases (Symptom-Based)", current_lang), type="primary", key="btn_diagnose_symptoms"):
                     if symptoms_input_diag and symptoms_input_diag.strip():
                         symptoms_list_diag = [s.strip().lower() for s in symptoms_input_diag.split(',') if s.strip() and len(s.strip()) > 2]
                         if not symptoms_list_diag:
@@ -5921,7 +5921,7 @@ if st.session_state.current_page == "Donate & Adopt":
                             with col_method:
                                 payment_method = st.selectbox(translate_text("Payment Method", current_lang), ["UPI", "Credit/Debit Card", "Net Banking"], key=f"pay_method_{camp_id}")
 
-                            if st.button(translate_text(f"Donate ₹{donation_amount:,.0f}", current_lang), key=f"donate_btn_{camp_id}", type="primary", use_container_width=True):
+                            if st.button(translate_text(f"Donate ₹{donation_amount:,.0f}", current_lang, key="auto_btn_70"), key=f"donate_btn_{camp_id}", type="primary", use_container_width=True):
                                 # Call mock payment processor
                                 payment_success = process_mock_payment(donation_amount, donor_name if donor_name else "Anonymous", payment_method, "campaign", camp_id)
 
@@ -6004,7 +6004,7 @@ if st.session_state.current_page == "Donate & Adopt":
                                     with col_adopt_method:
                                         adopt_payment_method = st.selectbox(translate_text("Payment Method", current_lang), ["UPI", "Credit/Debit Card", "Net Banking"], key=f"adopt_pay_method_{adopt_id}")
 
-                                    if st.button(translate_text(f"Sponsor {name_a} for ₹{cost_a:,.0f}/month", current_lang), key=f"sponsor_btn_{adopt_id}", type="primary", use_container_width=True):
+                                    if st.button(translate_text(f"Sponsor {name_a} for ₹{cost_a:,.0f}/month", current_lang, key="auto_btn_71"), key=f"sponsor_btn_{adopt_id}", type="primary", use_container_width=True):
                                         payment_success = process_mock_payment(cost_a, adopter_name if adopter_name else "Anonymous", adopt_payment_method, "adoptable_animal", adopt_id)
                                         if payment_success:
                                             # Mark animal as adopted and log sponsorship
@@ -6030,7 +6030,7 @@ if st.session_state.current_page == "Donate & Adopt":
                                 else:
                                     st.markdown(f"**{translate_text('To inquire about adopting or sponsoring', current_lang)} {translate_text(name_a, current_lang)}, {translate_text('please contact', current_lang)}:**")
                                     st.success(f"{contact_a or translate_text('The respective Gaushala/Organization', current_lang)}")
-                                    if st.button(translate_text(f"💖 Inquire about Adopting {name_a}", current_lang), key=f"adopt_inq_{adopt_id}", type="primary", use_container_width=True):
+                                    if st.button(translate_text(f"💖 Inquire about Adopting {name_a}", current_lang, key="auto_btn_72"), key=f"adopt_inq_{adopt_id}", type="primary", use_container_width=True):
                                         st.success(translate_text(f"Thank you for your interest in {name_a}! Please use the contact details above to connect with {translate_text(org_a, current_lang) or translate_text('the shelter', current_lang)}.", current_lang))
 
 

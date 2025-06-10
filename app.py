@@ -4695,8 +4695,8 @@ elif selected_page == "Eco Practices":
             if ORG_FARMING_SUBHEADER_ENGLISH in VIDEO_URLS:
                 # Use a unique key for each button to avoid Streamlit errors
                 button_key_organic = f"show_organic_video_{current_lang}"
-                if st.button(translate_text("Watch Video", current_lang, key="auto_btn_45"), key=button_key_organic):
-                    st.session_state[button_key_organic + "_clicked"] = True # Set state to show video
+                st.button(translate_text("Watch Video", current_lang), key=button_key_organic)
+                st.session_state[button_key_organic + "_clicked"] = True # Set state to show video
 
                 # Display the video only if the button was clicked
                 if st.session_state.get(button_key_organic + "_clicked", False):

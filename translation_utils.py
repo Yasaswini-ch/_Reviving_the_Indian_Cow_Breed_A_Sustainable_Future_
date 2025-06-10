@@ -85,10 +85,14 @@ def wrap_streamlit_text_function(st_func, current_lang_code):
         if isinstance(original_text, str):
             translated_text = translate_text(original_text, current_lang_code)
 
-            # ✅ Fix line break and bullet formatting issues
+            # ✅ Guard against None
+            if not translated_text:
+                translated_text = original_text  # Fallback to original
+
+            # ✅ Fix bullet formatting and line breaks
             translated_text = translated_text.replace("\\n", "\n").replace(" *", "\n*").replace("•", "\n•")
 
-            # ✅ If using markdown, force proper rendering of line breaks
+            # ✅ Markdown-specific handling
             if st_func == st.markdown:
                 return st.markdown(translated_text, *args[1:], unsafe_allow_html=False, **kwargs)
             else:
@@ -96,3 +100,4 @@ def wrap_streamlit_text_function(st_func, current_lang_code):
         else:
             return st_func(*args, **kwargs)
     return wrapped_func
+

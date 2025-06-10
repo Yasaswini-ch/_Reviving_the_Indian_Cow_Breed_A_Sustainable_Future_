@@ -1,32 +1,44 @@
-# requirements.txt
-
 # --- Core Frameworks ---
-streamlit >= 1.20.0  # Or a specific version you are using
-fastapi >= 0.90.0   # For the backend API
-uvicorn[standard] >= 0.20.0 # ASGI server for FastAPI (standard includes websockets etc.)
+streamlit>=1.20.0
+fastapi>=0.90.0
+uvicorn[standard]>=0.20.0
 
 # --- Streamlit Components ---
-streamlit-option-menu >= 0.3.0
+streamlit-option-menu>=0.3.0
 
 # --- Data Handling & Manipulation ---
-pandas >= 1.5.0
+pandas>=1.5.0
+numpy>=1.20.0
 
 # --- APIs & External Services ---
-google-generativeai >= 0.3.0 # For Gemini API
-googletrans >= 4.0.0rc1     # For translation (Note: unofficial API, can be unstable)
-# OR google-cloud-translate  # If using the official Google Cloud Translation API
-python-dotenv >= 1.0.0      # For loading .env files
-requests >= 2.28.0          # For making HTTP requests (used by Streamlit to call FastAPI)
-roboflow >= 1.1.0           # For Roboflow API
+google-generativeai>=0.3.0
+googletrans==4.0.0rc1
+python-dotenv>=1.0.0
+requests>=2.28.0
+roboflow>=1.1.0
+gTTS>=2.2.4
 
 # --- Image Processing & Computer Vision ---
-Pillow >= 9.0.0             # PIL - Python Imaging Library
-numpy >= 1.20.0             # Required by OpenCV and others
-opencv-python-headless >= 4.5.0 # OpenCV (headless version is often sufficient for servers)
-supervision >= 0.16.0       # For drawing bounding boxes (check latest version compatibility)
+Pillow>=9.0.0
+opencv-python-headless>=4.5.0
+supervision>=0.16.0
+
+# --- Machine Learning ---
+tensorflow>=2.11.0
+keras>=2.11.0
 
 # --- Database ---
-# sqlite3 is built-in to Python, no explicit install needed
+# sqlite3 is built-in
+bcrypt>=4.0.1
 
-# --- Potentially Needed (Depending on exact setup/OS) ---
-python-multipart            # Required by FastAPI for File/UploadFile handling
+# --- PDF & Excel Generation ---
+reportlab>=3.6.12
+
+# Optional: Uncomment if using Excel export explicitly
+# openpyxl>=3.0.10
+
+# --- File Upload Support for FastAPI ---
+python-multipart>=0.0.5
+
+# --- Logging, JSON & Utilities ---
+# (All are built-in: logging, json, uuid, traceback, io, base64, datetime, os, random)

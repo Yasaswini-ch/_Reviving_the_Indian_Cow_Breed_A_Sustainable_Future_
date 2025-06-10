@@ -18,6 +18,8 @@ googletrans >= 4.0.0rc1     # For translation (Note: unofficial API, can be unst
 python-dotenv >= 1.0.0      # For loading .env files
 requests >= 2.28.0          # For making HTTP requests (used by Streamlit to call FastAPI)
 roboflow >= 1.1.0           # For Roboflow API
+gTTS==2.2.4
+geopy==2.3.0
 
 # --- Image Processing & Computer Vision ---
 Pillow >= 9.0.0             # PIL - Python Imaging Library

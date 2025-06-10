@@ -16,7 +16,8 @@ googletrans >= 4.0.0rc1
 python-dotenv >= 1.0.0
 requests >= 2.28.0
 roboflow >= 1.1.0
-gTTS >= 2.2.4  # ✅ Added to fix deployment error
+gTTS >= 2.2.4  
+geopy >= 2.3.0
 
 # --- Image Processing & Computer Vision ---
 Pillow >= 9.0.0

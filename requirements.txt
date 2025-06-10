@@ -1,35 +1,39 @@
 # --- Core Frameworks ---
-streamlit==1.35.0
-fastapi==0.110.0
-uvicorn[standard]==0.29.0
+streamlit==1.20.0
+fastapi==0.90.0
+uvicorn[standard]==0.20.0
 
 # --- Streamlit Components ---
-streamlit-option-menu==0.3.6
+streamlit-option-menu==0.3.0
 
 # --- Data Handling & Manipulation ---
-pandas==2.2.2
-numpy==1.24.4 # TensorFlow will bring its own compatible numpy, but pinning it can be okay.
+pandas==1.5.3
+numpy==1.23.5
 
 # --- APIs & External Services ---
-google-generativeai==0.4.0
-googletrans==4.0.0-rc1 # Be aware pre-releases can sometimes be less stable
+google-generativeai==0.3.2
+googletrans==4.0.0-rc1
 python-dotenv==1.0.1
 requests==2.31.0
 roboflow==1.1.11
-gTTS==2.3.2
-geopy==2.4.1
+gTTS==2.2.4
+geopy==2.3.0
 
 # --- Image Processing & Computer Vision ---
-Pillow==10.3.0
-opencv-python-headless==4.9.0.80
+Pillow==9.5.0
+opencv-python-headless==4.7.0.72
 supervision==0.16.0
 
 # --- Machine Learning / Deep Learning ---
-tensorflow-cpu==2.15.0 # Explicitly CPU version, Keras is part of this
+tensorflow==2.10.1
+keras==2.10.0
 
 # --- PDF & Excel Generation ---
-reportlab==4.1.0
+reportlab==3.6.12
 openpyxl==3.1.2
 
 # --- Web & File Upload Handling ---
-python-multipart==0.0.9
+python-multipart==0.0.6
+
+# --- Other Tools ---
+bcrypt==4.0.1

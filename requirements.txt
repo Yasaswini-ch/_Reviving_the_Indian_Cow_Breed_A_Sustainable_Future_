@@ -8,7 +8,7 @@ streamlit-option-menu >= 0.3.0
 
 # --- Data Handling & Manipulation ---
 pandas >= 1.5.0
-numpy >= 1.20.0
+numpy==1.23.5
 
 # --- APIs & External Services ---
 google-generativeai >= 0.3.0
@@ -25,8 +25,8 @@ opencv-python-headless >= 4.5.0
 supervision >= 0.16.0
 
 # --- Machine Learning / Deep Learning ---
-tensorflow==2.9.3
-keras==2.9.0
+tensorflow==2.14.0
+keras==2.14.0
 
 # --- PDF & Excel Generation ---
 reportlab >= 3.6.0

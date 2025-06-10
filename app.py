@@ -3190,75 +3190,193 @@ elif st.session_state.current_page == "Browse Cattle":  # Assuming access contro
 
 # --- In your main PAGE CONTENT ROUTING section (elif st.session_state.current_page == ...) ---
 
-elif st.session_state.current_page == "Farm Products":
-        # Filters
-        c1, c2 = st.columns(2)
-        search_cat = c1.text_input(translate_text("Search by Product Category", current_lang), key="fp_search_cat")
-        search_loc = c2.text_input(translate_text("Search by Location", current_lang), key="fp_search_loc")
+elif st.session_state.current_page == "Farm Products":  # Renamed from "Find a Farmer"
+    ts.title("🛍️ " + translate_text("Farm Products Marketplace", current_lang))
+    ts.markdown(translate_text("Discover fresh, local products directly from farmers. Farmers can list their offerings here.", current_lang))
+    st.markdown("---")
 
-        query = """
+    conn = get_connection()
+    if not conn:
+        st.error(translate_text("Database connection failed.", current_lang))
+    else:
+        cursor = conn.cursor()
+
+        # --- Section for Logged-in Farmers to Edit Their Product Offerings ---
+        if st.session_state.logged_in and st.session_state.role == 'farmer':
+            ts.subheader(translate_text(f"📢 Manage Your Farm's Product Listings, {st.session_state.username}", current_lang))
+            with st.expander(translate_text("✏️ Edit My Product Offerings & Location", current_lang), expanded=False):
+                try:
+                    cursor.execute("""SELECT full_name, email, phone_number, address, region,
+                                            latitude, longitude, sells_products, product_categories, share_contact_info, upi_id
+                                       FROM users WHERE user_id = ?""", (st.session_state.user_id,))
+                    farmer_profile = cursor.fetchone()
+                except sqlite3.Error as e_prof:
+                    st.error(translate_text(f"Could not load your profile: {e_prof}", current_lang))
+                    farmer_profile = None
+
+                if farmer_profile:
+                    (prof_fname, prof_email, prof_phone, prof_address, prof_region,
+                     prof_lat, prof_lon, prof_sells, prof_prod_cat, prof_share, prof_upi_id) = farmer_profile
+
+                    with st.form(translate_text("edit_farmer_products_form_fp", current_lang)): # Unique key for the form
+                        ts.markdown(translate_text("Indicate if you sell farm products and specify categories.", current_lang))
+                        new_sells_products = st.checkbox(translate_text("I sell farm products", current_lang), value=bool(prof_sells), key="fp_sells_check_edit")
+                        new_product_categories = st.text_area(translate_text("Product Categories (comma-separated)", current_lang),
+                                                                value=prof_prod_cat or "",
+                                                                placeholder=translate_text("e.g., Fresh Milk, A2 Ghee, Organic Manure", current_lang),
+                                                                key="fp_prod_cat_input_edit",
+                                                                height=100,
+                                                                disabled=not new_sells_products)
+                        st.markdown("---")
+                        ts.markdown(translate_text("**Your Farm Location (for map display):**", current_lang))
+                        col_loc1_fp, col_loc2_fp = st.columns(2)
+                        new_address_fp = col_loc1_fp.text_input(translate_text("Farm Address", current_lang), value=prof_address or "", key="fp_addr_edit")
+                        new_region_fp = col_loc2_fp.text_input(translate_text("District, State", current_lang), value=prof_region or "", key="fp_region_state_edit")
+                        col_geo1_fp, col_geo2_fp = st.columns(2)
+                        new_latitude_fp = col_geo1_fp.number_input(translate_text("Latitude", current_lang), value=float(prof_lat) if prof_lat is not None else None, format="%.6f", key="fp_lat_edit", help=translate_text("Right-click on Google Maps to get coordinates", current_lang))
+                        new_longitude_fp = col_geo2_fp.number_input(translate_text("Longitude", current_lang), value=float(prof_lon) if prof_lon is not None else None, format="%.6f", key="fp_lon_edit")
+                        st.markdown("---")
+                        new_share_contact_fp = st.checkbox(translate_text("Share my contact details on listings?", current_lang), value=bool(prof_share), key="fp_share_contact_edit")
+                        
+                        # Add UPI ID input
+                        new_upi_id_fp = st.text_input(translate_text("Your UPI ID (for direct payments)", current_lang), value=prof_upi_id or "", help=translate_text("e.g., yourname@bankname or yourphonenumber@upi", current_lang))
+
+
+                        if st.form_submit_button(translate_text("Update My Info", current_lang)):
+                            try:
+                                cursor.execute("""UPDATE users SET
+                                                    address = ?, region = ?, latitude = ?, longitude = ?,
+                                                    sells_products = ?, product_categories = ?, share_contact_info = ?, upi_id = ?
+                                                WHERE user_id = ?""",
+                                               (new_address_fp or None, new_region_fp or None, new_latitude_fp, new_longitude_fp,
+                                                1 if new_sells_products else 0, new_product_categories.strip() if new_sells_products else None,
+                                                1 if new_share_contact_fp else 0, new_upi_id_fp.strip() if new_upi_id_fp.strip() else None,
+                                                st.session_state.user_id))
+                                conn.commit()
+                                st.success(translate_text("Your product and location info updated!", current_lang)); st.rerun()
+                            except sqlite3.Error as e_upd: st.error(translate_text(f"DB error: {e_upd}", current_lang))
+            st.markdown("---") # End of farmer's edit section
+
+
+        # --- Public Browse Section (for all users) ---
+        ts.subheader(translate_text("Browse Products from Local Farmers", current_lang))
+
+        # Filters
+        filter_col_prod1, filter_col_prod2 = st.columns(2)
+        search_product_cat_fp = filter_col_prod1.text_input(translate_text("Search by Product Category (e.g., Milk, Ghee)", current_lang), key="fp_search_prod_cat_main")
+        search_farmer_loc_fp = filter_col_prod2.text_input(translate_text("Search by Farmer Location (Region/State/District)", current_lang), key="fp_search_farm_loc_main")
+
+        query_farmers_selling_fp = """
             SELECT user_id, username, full_name, region, address, latitude, longitude,
                    product_categories, phone_number, email, share_contact_info, upi_id
             FROM users
             WHERE role = 'farmer' AND sells_products = 1
         """
-        params = []
-        if search_cat:
-            query += " AND LOWER(product_categories) LIKE ?"
-            params.append(f"%{search_cat.lower()}%")
-        if search_loc:
-            query += " AND (LOWER(region) LIKE ? OR LOWER(address) LIKE ?)"
-            params.extend([f"%{search_loc.lower()}%", f"%{search_loc.lower()}%"])
+        params_farmers_selling_fp = []
 
-        query += " ORDER BY region, COALESCE(full_name, username)"
+        if search_product_cat_fp:
+            query_farmers_selling_fp += " AND LOWER(product_categories) LIKE ?"
+            params_farmers_selling_fp.append(f"%{search_product_cat_fp.lower()}%")
+        if search_farmer_loc_fp:
+            query_farmers_selling_fp += " AND (LOWER(region) LIKE ? OR LOWER(address) LIKE ?)" # Search in both region and address
+            params_farmers_selling_fp.extend([f"%{search_farmer_loc_fp.lower()}%", f"%{search_farmer_loc_fp.lower()}%"])
+        
+        query_farmers_selling_fp += " ORDER BY region, COALESCE(full_name, username)"
 
         try:
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            if not rows:
-                st.info(translate_text("No farmers found matching your criteria.", current_lang))
+            cursor.execute(query_farmers_selling_fp, params_farmers_selling_fp)
+            farmers_with_products_fp = cursor.fetchall()
+
+            if not farmers_with_products_fp:
+                st.info(translate_text("No farmers found matching your criteria or listing products currently.", current_lang))
             else:
-                ts.markdown(translate_text(f"##### Found {len(rows)} Farmer(s):", current_lang))
-                for row in rows:
-                    (uid, uname, name, region, address, lat, lon,
-                     categories, phone, email, share, upi_id) = row
+                map_data_list_fp = []
+                displayable_farmers_list = [] # Farmers to show in the list section
+
+                for farmer_row in farmers_with_products_fp:
+                    # farmer_row format: (user_id, username, full_name, region, address, latitude, longitude, product_categories, phone_number, email, share_contact_info, upi_id)
+                    displayable_farmers_list.append(farmer_row) # Add all for list view initially
+                    
+                    lat_val = farmer_row[5] # latitude
+                    lon_val = farmer_row[6] # longitude
+                    if lat_val is not None and lon_val is not None:
+                        try:
+                            # Add to map_data_list if lat/lon are valid
+                            map_data_list_fp.append({'lat': float(lat_val), 'lon': float(lon_val), 'size': 20})
+                        except (TypeError, ValueError):
+                            logger.warning(f"Farmer {farmer_row[1]} has invalid lat/lon for map: {lat_val}, {lon_val}")
+                
+                # --- MAP DISPLAY (RESTORED) ---
+                if map_data_list_fp:
+                    df_map_fp = pd.DataFrame(map_data_list_fp)
+                    ts.markdown(translate_text("##### Farmer Locations on Map (Approximate):", current_lang))
+                    st.map(df_map_fp, zoom=4) # Adjust default zoom level as needed
+                    st.markdown("---")
+                elif farmers_with_products_fp: # If there are farmers but none had map data
+                    st.info(translate_text("No farmers with valid location data to display on the map for current filters.", current_lang))
+                # --- END MAP DISPLAY ---
+                
+                ts.markdown(translate_text(f"##### Found {len(displayable_farmers_list)} Farmer(s) Selling Products:", current_lang))
+                for farmer_detail_tuple in displayable_farmers_list:
+                    (user_id_d, username_d, full_name_d, region_d, address_d,
+                     _lat_d, _lon_d, # We don't need to display lat/lon in the card directly
+                     product_categories_d, phone_d, email_d, share_contact_d, upi_id_d) = farmer_detail_tuple
 
                     with st.container(border=True):
-                        ts.subheader(name or uname)
-                        if region: ts.write(translate_text(f"**Region:** {region}", current_lang))
-                        if categories:
-                            ts.markdown(translate_text("**Selling:**", current_lang))
-                            for item in [c.strip() for c in categories.split(",")]:
-                                ts.markdown(f"- {item}")
+                        ts.subheader(f"{full_name_d or username_d}")
+                        if region_d: ts.write(translate_text(f"**Region:** {region_d}", current_lang))
+                        
+                        if product_categories_d:
+                            ts.markdown(translate_text(f"**Selling:**", current_lang))
+                            categories_list = [cat.strip() for cat in product_categories_d.split(',')]
+                            # Simple list display for categories
+                            for cat_item in categories_list:
+                                ts.markdown(f"- {cat_item}")
                         else:
-                            ts.write(translate_text("Products: Not specified.", current_lang))
+                            ts.write(translate_text("Products: Not specified by the farmer.", current_lang))
 
-                        with st.expander(translate_text("View Details & Contact", current_lang)):
-                            if address:
-                                ts.write(translate_text(f"**Farm Address:** {address}", current_lang))
-                            if share == 1:
-                                ts.markdown(translate_text("**Contact:**", current_lang))
-                                if phone: ts.write(translate_text(f"📞 `{phone}`", current_lang))
-                                if email: ts.write(translate_text(f"📧 [{email}](mailto:{email})", current_lang))
+                        # Expander for more details and contact
+                        with st.expander(translate_text("View More Details & Contact", current_lang)):
+                            if address_d: ts.write(translate_text(f"**Farm Address (Approx.):** {address_d}", current_lang))
+                            if product_categories_d: ts.write(translate_text(f"**Full Product List:** {product_categories_d.replace(',',', ')}", current_lang)) # Re-list if needed
+
+                            if share_contact_d == 1:
+                                ts.markdown(translate_text("**Contact Information:**", current_lang))
+                                if phone_d: ts.write(translate_text(f"📞 Phone: `{phone_d}`", current_lang))
+                                if email_d: ts.write(translate_text(f"📧 Email: [{email_d}](mailto:{email_d}?subject=Inquiry about Farm Products from {full_name_d or username_d})", current_lang))
+                                if not phone_d and not email_d: st.caption(translate_text("Contact details not fully provided by seller.", current_lang))
                             else:
-                                st.caption(translate_text("Contact info hidden.", current_lang))
+                                st.caption(translate_text("Seller has chosen not to share direct contact details publicly.", current_lang))
 
+                            # Add Payment Facilitation Section for Farm Products
                             ts.markdown("---")
-                            ts.subheader(translate_text("Payment Info", current_lang))
-                            if upi_id:
-                                ts.success(f"**{translate_text('Pay via UPI:', current_lang)}** `{upi_id}`", icon="💳")
-                                ts.markdown(translate_text("""**After Paying:**
-1. Confirm amount with farmer.
-2. Pay via UPI.
-3. Share proof (screenshot).
-4. Arrange pickup/delivery.
+                            ts.subheader(translate_text("Payment Information", current_lang))
+                            if upi_id_d:
+                                ts.success(f"**{translate_text('Pay Farmer via UPI (e.g., GPay, PhonePe):', current_lang)}** `{upi_id_d}`", icon="💳")
+                                ts.markdown(translate_text(f"You can use this UPI ID to pay **{full_name_d or username_d}** directly for their products.", current_lang))
+                                # You can optionally generate a generic UPI payment link here if there's no fixed price.
+                                # For farm products, prices are dynamic, so a direct link might not always make sense.
+                                # Example if you wanted a generic link:
+                                # upi_generic_link = f"upi://pay?pa={upi_id_d}&pn={full_name_d or username_d}&cu=INR"
+                                # ts.link_button(translate_text("Initiate UPI Payment", current_lang), upi_generic_link, help=translate_text("Opens UPI app for direct payment.", current_lang))
+                                ts.markdown(translate_text("""**Important Steps After Payment:**
+1. Coordinate exact amount and terms with the farmer.
+2. Complete payment using your UPI app.
+3. **Share transaction ID/screenshot with farmer** as proof.
+4. Coordinate for product pickup/delivery.
 """, current_lang))
+                            elif share_contact_d == 1 and (email_d or phone_d):
+                                st.info(translate_text("Farmer has not provided a UPI ID. Please use contact details above to discuss payment and product terms.", current_lang))
                             else:
-                                st.info(translate_text("No UPI info. Contact seller directly.", current_lang))
+                                st.info(translate_text("Farmer has not provided UPI ID or public contact details. Please try other listings.", current_lang))
 
+                            ts.markdown(translate_text("**Note:** This platform does not process payments directly.", current_lang))
+
+                        st.markdown("---") # Separator for each farmer
         except sqlite3.Error as e:
-            st.error(translate_text(f"Database error: {e}", current_lang))
-
+            st.error(translate_text(f"Database error fetching farmer product data: {e}", current_lang))
+            logger.error(f"DB error Farm Products Marketplace: {e}")
+        # No conn.close() here due to @st.cache_resource
 
 elif st.session_state.current_page == "Vet Locator" and st.session_state.logged_in and st.session_state.role == "farmer":
     ts.title("👩‍⚕️ Veterinarian Locator (Map-Based)")

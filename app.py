@@ -4293,7 +4293,7 @@ elif selected_page == "Home": # Or: elif st.session_state.current_page == "Home"
             display_static_image("feature_eco.png", use_container_width=True) # Placeholder: images/feature_eco.jpg
             st.caption(translate_text("Learn about organic farming, water conservation, manure management, biogas, and other sustainable techniques to enhance farm resilience.", current_lang))
             st.button(translate_text("Learn Eco Practices", current_lang), key="home_btn_eco")
-                st.session_state.current_page = "Eco Practices"; st.rerun()
+            st.session_state.current_page = "Eco Practices"; st.rerun()
 
     with feat_cols[2]:
         with st.container(border=True):

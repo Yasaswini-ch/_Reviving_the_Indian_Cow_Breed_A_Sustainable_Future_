@@ -1,9 +1,7 @@
 # translation_utils.py (FINAL VERSION - Translation ONLY)
 
 import streamlit as st
-from googletrans import Translator
-# Removed all imports related to audio (gTTS, os, io, hashlib)
-
+from deep_translator import GoogleTranslator
 # --- 1. Language Definitions ---
 LANGUAGES = {
     'en': 'English',

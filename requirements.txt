@@ -21,6 +21,10 @@ roboflow >= 1.1.0           # For Roboflow API
 gTTS==2.2.4
 geopy==2.3.0
 
+# --- Machine Learning / Deep Learning ---
+tensorflow==2.9.3
+keras==2.9.0
+
 # --- Image Processing & Computer Vision ---
 Pillow >= 9.0.0             # PIL - Python Imaging Library
 numpy >= 1.20.0             # Required by OpenCV and others

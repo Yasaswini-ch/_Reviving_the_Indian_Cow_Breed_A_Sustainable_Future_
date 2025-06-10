@@ -21,7 +21,7 @@ geopy >= 2.3.0  # ✅ Added to fix current error
 
 # --- Image Processing & Computer Vision ---
 Pillow >= 9.0.0
-opencv-python-headless >= 4.5.0
+opencv-python-headless==4.8.0.74
 supervision >= 0.16.0
 
 # --- Machine Learning / Deep Learning ---

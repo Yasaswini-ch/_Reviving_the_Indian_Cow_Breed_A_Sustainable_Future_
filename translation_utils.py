@@ -22,22 +22,30 @@ LANGUAGES = {
     # Add more languages if needed
 }
 
-# --- 2. Translation Helper Function ---
-@st.cache_data(ttl=3600)
-def translate_text(text: str, dest_lang: str) -> str:
+def safe_translate(text: str, dest_lang: str) -> str:
     """
-    Translates the given text to the destination language.
-    Uses googletrans library.
+    Translates text to the destination language using googletrans.
+    Cached separately to avoid re-creating translator inside @st.cache_data.
     """
     if not text:
         return ""
-    translator = Translator()
+
     try:
+        translator = Translator()
         translated = translator.translate(text, dest=dest_lang)
         return translated.text
     except Exception as e:
         st.error(f"Translation error: {e}")
-        return text # Return original text on error
+        return text  # Return original on error
+
+
+@st.cache_data(ttl=3600)
+def translate_text(text: str, dest_lang: str) -> str:
+    """
+    Cached wrapper around the safe_translate function.
+    Only caches pure inputs/outputs.
+    """
+    return safe_translate(text, dest_lang)
 
 # --- 3. Placeholder for former Text-to-Speech (REMOVED) ---
 # The text_to_speech function is completely removed from this file.

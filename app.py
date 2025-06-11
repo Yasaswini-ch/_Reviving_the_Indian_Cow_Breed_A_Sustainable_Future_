@@ -3778,7 +3778,7 @@ elif selected_page == "Sell Machinery" and st.session_state.logged_in:
                 for mach_listing_sm_item in my_mach_listings_sm:
                     m_id, m_name, m_type, m_brand, m_model, m_price, m_rent_price, m_for_rent, m_loc, m_status, m_img1 = mach_listing_sm_item
                     # Change 'st.container' to 'ts.container' to be consistent with your 'ts' object
-                    with ts.container(border=True):
+                    with st.container(border=True):
                         disp_mc1, disp_mc2 = st.columns([1,3])
                         with disp_mc1:
                             display_uploaded_image(m_img1, caption=m_name, width=120)

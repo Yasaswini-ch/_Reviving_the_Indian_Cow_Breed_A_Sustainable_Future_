@@ -3460,36 +3460,37 @@ elif st.session_state.current_page == "Vet Locator" and st.session_state.logged_
 # ----- BROWSE FARM MACHINERY PAGE -----
 #
 # CORRECTED: The 'elif' statement now correctly starts a new line and code block.
+# ----- BROWSE FARM MACHINERY PAGE (FULL CORRECTED CODE) -----
+
 elif st.session_state.current_page == "Browse Machinery":
-    # Use a consistent alias for Streamlit functions, assuming 'ts' is your standard
+    # Use a consistent alias for Streamlit functions
     ts = st 
 
-    # --- Page Header ---
+    # --- 1. Page Header ---
     ts.title("🚜 " + translate_text("Browse Farm Machinery for Sale/Rent", current_lang))
     ts.markdown(translate_text("Find machinery listed by other users.", current_lang))
     ts.markdown("---")
 
-    # --- Database Connection ---
+    # --- 2. Database Connection ---
     conn = get_connection()
     if not conn:
         ts.error(translate_text("Database connection failed.", current_lang))
     else:
         cursor = conn.cursor()
 
-        # --- Filters for Machinery ---
+        # --- 3. Filter Widgets ---
         filter_col1, filter_col2, filter_col3 = ts.columns(3)
         with filter_col1:
             search_name = ts.text_input(
-                translate_text("Search Name/Type/Brand", current_lang), 
+                label=translate_text("Search Name/Type/Brand", current_lang), 
                 key="machinery_search_name"
             )
         with filter_col2:
             search_location = ts.text_input(
-                translate_text("Location", current_lang), 
+                label=translate_text("Location", current_lang), 
                 key="machinery_search_location"
             )
         with filter_col3:
-            # This list is correctly defined inside the page's conditional block
             machinery_type_options = [translate_text("All Types", current_lang)] + [
                 translate_text("Tillage", current_lang),
                 translate_text("Sowing/Planting", current_lang),
@@ -3502,21 +3503,21 @@ elif st.session_state.current_page == "Browse Machinery":
                 translate_text("Other", current_lang)
             ]
             search_type = ts.selectbox(
-                translate_text("Filter Type", current_lang), 
+                label=translate_text("Filter Type", current_lang), 
                 options=machinery_type_options, 
                 key="machinery_search_type"
             )
 
-        # --- Save Alert Snippet ---
-        # This allows users to save their current search filters as an alert
+        # --- 4. Save Alert Functionality ---
         current_filters = {}
         if search_name: current_filters['type_name_brand'] = search_name
         if search_location: current_filters['location'] = search_location
         if search_type != translate_text("All Types", current_lang): current_filters['machinery_type'] = search_type
         
+        # Show this section only if filters are active and a buyer is logged in
         if current_filters and st.session_state.get('logged_in') and st.session_state.get('role') == 'buyer':
             alert_name = ts.text_input(
-                translate_text("Save current search as Alert Name:", current_lang), 
+                label=translate_text("Save current search as Alert Name:", current_lang), 
                 key="save_machinery_alert_name", 
                 placeholder=translate_text("e.g., Used Tractors Punjab", current_lang)
             )
@@ -3530,7 +3531,11 @@ elif st.session_state.current_page == "Browse Machinery":
                             (st.session_state.user_id, alert_name.strip(), "machinery", criteria_json, timestamp, timestamp)
                         )
                         conn.commit()
-                        ts.success(f"{translate_text('Alert', current_lang)} '{alert_name}' {translate_text('saved! Check the "Saved Alerts" page.', current_lang)}")
+                        
+                        # CORRECTED: The text for the success message uses single quotes internally to avoid f-string syntax errors.
+                        success_message_text = translate_text("saved! Check the 'Saved Alerts' page.", current_lang)
+                        ts.success(f"{translate_text('Alert', current_lang)} '{alert_name}' {success_message_text}")
+                        
                     except sqlite3.Error as e:
                         ts.error(f"{translate_text('Error saving machinery alert:', current_lang)} {e}")
                         logger.error(f"Error saving machinery alert for user {st.session_state.user_id}: {e}")
@@ -3539,7 +3544,7 @@ elif st.session_state.current_page == "Browse Machinery":
         
         ts.markdown("---")
 
-        # --- Database Query Construction ---
+        # --- 5. Database Query Construction ---
         query = """
             SELECT 
                 ml.machinery_id, u.username as seller_username, p.full_name as seller_full_name, 
@@ -3567,7 +3572,7 @@ elif st.session_state.current_page == "Browse Machinery":
             
         query += " ORDER BY ml.listing_date DESC"
 
-        # --- Execute Query and Display Results ---
+        # --- 6. Execute Query and Display Results ---
         try:
             cursor.execute(query, params)
             machinery_listings = cursor.fetchall()
@@ -3575,11 +3580,9 @@ elif st.session_state.current_page == "Browse Machinery":
             if not machinery_listings:
                 ts.info(translate_text("No machinery listings match your criteria.", current_lang))
             else:
-                # --- Pre-translate labels for efficiency ---
-                found_listings_label = translate_text("Found {count} machinery listings:", current_lang)
-                ts.subheader(found_listings_label.format(count=len(machinery_listings)))
+                ts.subheader(translate_text("Found {count} machinery listings:", current_lang).format(count=len(machinery_listings)))
 
-                # Labels used inside the loop
+                # Pre-translate static labels for efficiency before the loop
                 type_label = translate_text("Type:", current_lang)
                 condition_label = translate_text("Condition:", current_lang)
                 yom_label = translate_text("YoM:", current_lang)
@@ -3595,6 +3598,7 @@ elif st.session_state.current_page == "Browse Machinery":
                 view_details_label = translate_text("⚙ View Full Details & Contact", current_lang)
 
                 for listing in machinery_listings:
+                    # Unpack tuple for readability
                     (machinery_id, seller_username, seller_full_name, seller_region, seller_email,
                      seller_phone, seller_share_contact, seller_upi, name, type_mach, brand, 
                      model, yom, condition, asking_price, description, listing_location, 
@@ -3622,15 +3626,16 @@ elif st.session_state.current_page == "Browse Machinery":
                             date_obj = datetime.strptime(listing_date_str, '%Y-%m-%d %H:%M:%S')
                             ts.caption(f"{listed_by_label} {seller_username} {on_label} {date_obj.strftime('%d %b %Y')}")
                             
+                            # --- Expander Button Logic ---
                             is_expanded = (st.session_state.get('expanded_machinery_id') == machinery_id)
                             button_label = hide_details_label if is_expanded else view_details_label
                             if ts.button(button_label, key=f"view_machinery_{machinery_id}"):
                                 st.session_state.expanded_machinery_id = None if is_expanded else machinery_id
-                                # Collapse other expanded items if any
+                                # Collapse other expanded items (e.g., cattle) to ensure only one is open at a time
                                 st.session_state.expanded_cattle_id = None 
-                                st.rerun()
+                                ts.rerun()
 
-                        # --- Expanded View ---
+                        # --- Expanded View (shown only if the button is clicked) ---
                         if is_expanded:
                             ts.markdown("---")
                             ts.markdown(f"##### {translate_text('Full Details for:', current_lang)} {name}")
@@ -3661,8 +3666,6 @@ elif st.session_state.current_page == "Browse Machinery":
                                     ts.markdown(payment_instruction.format(price=f"{asking_price:,.0f}", seller=seller_full_name or seller_username))
                                     upi_payment_link = f"upi://pay?pa={seller_upi}&pn={seller_full_name or seller_username}&am={asking_price:.2f}&cu=INR&tn=Payment for Machinery ID {machinery_id}"
                                     ts.link_button(translate_text("Generate UPI Payment Link (Experimental)", current_lang), upi_payment_link, help=translate_text("Click to try opening UPI app.", current_lang))
-                            
-                            # Add to Wishlist/Tracking logic would go here if needed
 
         except sqlite3.Error as e:
             ts.error(f"{translate_text('Could not fetch machinery listings:', current_lang)} {e}")

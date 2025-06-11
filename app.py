@@ -3636,7 +3636,7 @@ elif st.session_state.current_page == "Browse Machinery":  # Assuming access con
                                 if asking_price and asking_price > 0:
                                     ts.markdown(translate_text(f"You can use this UPI ID to pay **₹{asking_price:,.0f}** to **{seller_full_name or seller_username}**.", current_lang))
                                     upi_payment_str_mach = f"upi://pay?pa={seller_upi}&pn={seller_full_name or seller_username}&am={asking_price:.2f}&cu=INR&tn=Payment for Machinery ID {machinery_id}"
-                                    ts.link_button(translate_text("Generate UPI Payment Link (Experimental)", current_lang), upi_payment_str_mach, help=translate_text("Click to try opening UPI app.", current_lang))
+                                    st.link_button(translate_text("Generate UPI Payment Link (Experimental)", current_lang), upi_payment_str_mach, help=translate_text("Click to try opening UPI app.", current_lang))
                                 elif for_rent == 1 and rental_price_day and rental_price_day > 0:
                                     ts.markdown(translate_text(f"For rental, coordinate amount & terms using UPI ID: `{seller_upi}`.", current_lang))
                                 else:

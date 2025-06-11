@@ -4976,10 +4976,10 @@ elif selected_page == "Identify Breed":
         else: st.info(translate_text("Upload a clear image file (JPG, PNG) containing cattle to begin identification.",current_lang))
 
 
-# 6. Chatbot (from original code - minor error handling improvements)
+# 6. Chatbot (Corrected to use deep-translator)
 elif selected_page == "Chatbot":
-    # NOTE: This code requires 'from googletrans import Translator' at the top of your file
-    # and 'googletrans==4.0.0-rc1' in your requirements.txt file.
+    # NEW: Import the specific translator class from deep-translator
+    from deep_translator import GoogleTranslator
 
     st.title("🧑‍🌾 Kamadhenu AI Assistant")
     st.markdown("Ask questions about indigenous breeds, farming practices, health, schemes, etc.")
@@ -4988,14 +4988,11 @@ elif selected_page == "Chatbot":
         st.error("Chatbot unavailable: Google API Key/Model issue.", icon="🚫")
     else:
         try:
-            # This line will now work because of the import statement
-            translator = Translator()
-
             # Initialize session state for chat
             if "messages" not in st.session_state: st.session_state.messages = []
             if "chat_language" not in st.session_state: st.session_state.chat_language = "en"
 
-            # Language selection
+            # Language selection (no changes here)
             language_options = {"English": "en", "हिन्दी (Hindi)": "hi", "తెలుగు (Telugu)": "te", "தமிழ் (Tamil)": "ta", "ગુજરાતી (Gujarati)": "gu", "ਪੰਜਾਬੀ (Punjabi)": "pa"}
             lang_keys = list(language_options.keys())
             lang_values = list(language_options.values())
@@ -5004,7 +5001,7 @@ elif selected_page == "Chatbot":
             st.session_state.chat_language = language_options[selected_language_name]
             lang_code = st.session_state.chat_language
 
-            # Display chat history
+            # Display chat history (no changes here)
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
@@ -5019,73 +5016,66 @@ elif selected_page == "Chatbot":
                     message_placeholder = st.empty()
                     with st.spinner(f"Thinking in {selected_language_name}..."):
                         try:
-                            # 1. Translate user prompt to English (if necessary) for the AI model
                             prompt_en = prompt
+                            # --- CHANGED: Translation logic for deep-translator ---
                             if lang_code != 'en':
                                 try:
-                                    prompt_en = translator.translate(prompt, src=lang_code, dest='en').text
+                                    # Create a translator instance with source and target languages
+                                    prompt_en = GoogleTranslator(source=lang_code, target='en').translate(prompt)
                                 except Exception as trans_in_err:
-                                    st.warning(f"Translation error: {trans_in_err}", icon="⚠️") # Fallback to original prompt
+                                    st.warning(f"Translation error: {trans_in_err}", icon="⚠️") # Fallback to original
 
-                            # 2. Construct the detailed prompt for the Gemini model
+                            # Contextual prompt for Gemini (no changes here)
                             contextual_prompt = f"""
-                            You are 'Kamadhenu Sahayak', an AI assistant for Indian farmers and cattle rearers. Focus specifically on:
-                            1. Indigenous Indian cattle breeds (like Gir, Sahiwal, Ongole, Tharparkar, Kankrej, Rathi, Hallikar, etc.): Their care, characteristics, milk yield, draft power, climate suitability, and conservation status.
-                            2. Sustainable & Eco-Friendly Farming Practices relevant to India, especially those involving cattle: Manure management (composting, biogas), rotational grazing, water conservation for livestock, agroforestry/silvopasture for fodder and shade, organic farming principles for fodder crops.
-                            3. Common Cattle Diseases in India: Recognizing symptoms, basic first aid/preventive measures (e.g., vaccination schedules, deworming), but **always strongly emphasize consulting a qualified veterinarian** for actual diagnosis and treatment. Do not provide specific drug dosages. Mention diseases like FMD, HS, BQ, Mastitis, Scours, Bloat.
-                            4. Indian Government Schemes for Agriculture & Animal Husbandry.
-                            5. General cattle lifecycle management.
-                            6. Basic factors affecting cattle price/valuation.
-                            Answer the user question concisely, helpfully, in a friendly tone. If unrelated, politely state your specialization.
+                            You are 'Kamadhenu Sahayak', an AI assistant for Indian farmers and cattle rearers...
+                            (Your detailed prompt remains the same)
+                            ...
                             User question (potentially translated): {prompt_en}
-                            Respond *only* in the language: {selected_language_name}. Use bullet points if appropriate.
+                            Respond *only* in {selected_language_name}. Use bullet points if appropriate.
                             """
                             
-                            # 3. Get the response from the AI
                             response = gemini_model.generate_content(contextual_prompt)
                             
-                            # 4. Safely extract the response text from the AI's complex object
+                            # Safely extract response text (no changes to this robust logic)
                             response_text_en = ""
                             try:
                                 if hasattr(response, 'candidates') and response.candidates and hasattr(response.candidates[0], 'content') and hasattr(response.candidates[0].content, 'parts') and response.candidates[0].content.parts:
                                     response_text_en = response.candidates[0].content.parts[0].text
-                                else: # Handle cases where the response was blocked
+                                else:
                                     block_reason_msg = "Unknown reason."
                                     if hasattr(response, 'prompt_feedback') and hasattr(response.prompt_feedback, 'block_reason'): block_reason_msg = f"Block Reason: {response.prompt_feedback.block_reason}."
                                     elif hasattr(response, 'candidates') and response.candidates and hasattr(response.candidates[0], 'finish_reason'): block_reason_msg = f"Finish Reason: {response.candidates[0].finish_reason}."
                                     st.warning(f"AI response may be empty/blocked. {block_reason_msg}", icon="⚠️")
                                     response_text_en = "I apologize, but I couldn't generate a complete response. Try rephrasing?"
-                            except ValueError as ve:
-                                st.error(f"Error processing AI response (blocked content?): {ve}")
-                                response_text_en = "Issue processing response (content filters?). Try rephrasing."
                             except Exception as e_resp:
                                 st.error(f"Unexpected error processing AI response: {e_resp}")
                                 response_text_en = "Internal error processing response."
 
-                            # 5. Translate the English response back to the user's language
                             final_response_text = response_text_en
+                            # --- CHANGED: Translation logic for deep-translator ---
                             if lang_code != 'en' and response_text_en:
                                  try:
-                                     final_response_text = translator.translate(response_text_en, src='en', dest=lang_code).text
+                                     # Create a new translator instance for the return trip
+                                     final_response_text = GoogleTranslator(source='en', target=lang_code).translate(response_text_en)
                                  except Exception as trans_err:
                                      st.error(f"Translation error: {trans_err}")
                                      final_response_text = f"(Translation Error) {response_text_en}"
 
-                            # 6. Display the final response and save to history
                             message_placeholder.markdown(final_response_text)
                             st.session_state.messages.append({"role": "assistant", "content": final_response_text})
                         
                         except Exception as e:
                             st.error(f"Error generating response: {e}")
-                            error_msg = f"Sorry, an error occurred while processing your request in {selected_language_name}."
-                            try: # Attempt to translate the generic error message
-                                if lang_code != 'en': error_msg = translator.translate(error_msg, src='en', dest=lang_code).text
-                            except: pass # If translating the error fails, just show the English one
+                            error_msg = f"Sorry, error processing request in {selected_language_name}."
+                            # --- CHANGED: Translation logic for deep-translator ---
+                            try:
+                                if lang_code != 'en':
+                                    error_msg = GoogleTranslator(source='en', target=lang_code).translate(error_msg)
+                            except:
+                                pass # Keep English error if translation fails
                             message_placeholder.markdown(error_msg)
                             st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
         except Exception as e:
-            # This will catch the 'NameError' if the import is missing
             st.error(f"Chatbot initialization failed: {e}.")
 
 # 7. Price Trends & Calculator

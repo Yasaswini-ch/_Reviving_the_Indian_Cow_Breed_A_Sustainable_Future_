@@ -3671,144 +3671,146 @@ elif st.session_state.current_page == "Browse Machinery":
             ts.error(f"{translate_text('Could not fetch machinery listings:', current_lang)} {e}")
             logger.error(f"DB error on Browse Machinery page: {e}")
 # --- MODIFIED: Sell Machinery Page (Farmer/Buyer) ---
-elif selected_page == "Sell Machinery" and st.session_state.logged_in:
-    ts.title("🛠️ " + translate_text("List Your Farm Machinery for Sale/Rent", current_lang))
-    ts.markdown(translate_text("Offer your used or surplus machinery to other users.", current_lang))
-    ts.markdown("---")
-    conn = get_connection()
-    if not conn: ts.error(translate_text("Database connection failed.", current_lang))
-    else:
-        cursor = conn.cursor()
-        # Change 'ts.form' back to 'st.form'
-        with st.form("sell_machinery_form", clear_on_submit=True):
-            ts.subheader(translate_text("Machinery Details", current_lang))
-            m_c1_sm, m_c2_sm = st.columns(2)
-            mach_name_sm = m_c1_sm.text_input(translate_text("Machinery Name/Title*", current_lang), help=translate_text("e.g., Tractor - Mahindra 265 DI, Used Plough", current_lang))
-            mach_type_options_sm = [
-                translate_text("Tillage", current_lang),
-                translate_text("Sowing/Planting", current_lang),
-                translate_text("Harvesting", current_lang),
-                translate_text("Post-Harvest", current_lang),
-                translate_text("Dairy Equipment", current_lang),
-                translate_text("Irrigation", current_lang),
-                translate_text("Transport", current_lang),
-                translate_text("Spares/Parts", current_lang),
-                translate_text("Other", current_lang)
-            ]
-            mach_type_sm = m_c2_sm.selectbox(translate_text("Type/Category*", current_lang), options=mach_type_options_sm)
+# ----- SELL / MANAGE MACHINERY PAGE (FULL CORRECTED CODE) -----
 
-            m_c3_sm, m_c4_sm =st.columns(2)
-            mach_brand_sm = m_c3_sm.text_input(translate_text("Brand (if any)", current_lang))
-            mach_model_sm = m_c4_sm.text_input(translate_text("Model (if any)", current_lang))
-            
-            m_c5_sm, m_c6_sm = st.columns(2)
-            current_year = datetime.now().year
-            mach_yom_sm = m_c5_sm.number_input(translate_text("Year of Manufacture (approx)", current_lang), min_value=1950, max_value=current_year, value=current_year - 5, step=1)
-            mach_condition_options_sm = [
-                translate_text("New", current_lang),
-                translate_text("Used - Excellent", current_lang),
-                translate_text("Used - Good", current_lang),
-                translate_text("Used - Fair", current_lang),
-                translate_text("Needs Repair", current_lang),
-                translate_text("For Spares", current_lang)
-            ]
-            mach_condition_sm = m_c6_sm.selectbox(translate_text("Condition*", current_lang), options=mach_condition_options_sm)
-            
-            m_c7_sm, m_c8_sm = st.columns([3,1])
-            mach_price_sm = m_c7_sm.number_input(translate_text("Asking Price (₹)*", current_lang), min_value=0.0, step=100.0, help=translate_text("Enter 0 if only for rent or free.", current_lang))
-            # Change 'ts.checkbox' to 'st.checkbox'
-            mach_for_rent_sm = m_c8_sm.checkbox(translate_text("For Rent?", current_lang), value=False, key="mach_rent_check")
-            mach_rental_price_day_sm = 0.0
-            if mach_for_rent_sm:
-                # Change 'ts.number_input' to 'st.number_input'
-                mach_rental_price_day_sm = st.number_input(translate_text("Rental Price per Day (₹)", current_lang), min_value=0.0, step=50.0, key="mach_rent_price")
+elif st.session_state.current_page == "Sell Machinery" and st.session_state.get('logged_in'):
+    # Use a consistent alias for Streamlit functions
+    ts = st
 
+    # --- 1. FORM TO ADD NEW MACHINERY ---
+    ts.subheader("📝 " + translate_text("List New Machinery for Sale or Rent", current_lang))
 
-            # Change 'ts.text_area' to 'st.text_area'
-            mach_desc_sm = st.text_area(translate_text("Description*", current_lang), height=150, help=translate_text("Include details like HP, capacity, hours used, any defects, reason for selling/renting.", current_lang))
-            # Change 'ts.text_input' to 'st.text_input'
-            mach_location_sm = st.text_input(translate_text("Your Location* (District, State)", current_lang), placeholder=translate_text("e.g., Nagpur, Maharashtra", current_lang))
-            
-            ts.markdown(translate_text("##### Upload Images (Optional, up to 2)", current_lang))
-            img_col1_sm, img_col2_sm = st.columns(2)
-            with img_col1_sm:
-                # Change 'ts.file_uploader' to 'st.file_uploader'
-                mach_image1_sm = st.file_uploader(translate_text("Image 1 (Main)", current_lang), type=['jpg', 'jpeg', 'png'], key="sell_mach_img1")
-            with img_col2_sm:
-                # Change 'ts.file_uploader' to 'st.file_uploader'
-                mach_image2_sm = st.file_uploader(translate_text("Image 2 (Optional)", current_lang), type=['jpg', 'jpeg', 'png'], key="sell_mach_img2")
+    # Define machinery type options inside the page's logic
+    machinery_type_options_form = [
+        translate_text("Tillage", current_lang),
+        translate_text("Sowing/Planting", current_lang),
+        translate_text("Harvesting", current_lang),
+        translate_text("Post-Harvest", current_lang),
+        translate_text("Dairy Equipment", current_lang),
+        translate_text("Irrigation", current_lang),
+        translate_text("Transport", current_lang),
+        translate_text("Spares/Parts", current_lang),
+        translate_text("Other", current_lang)
+    ]
 
+    with ts.form("sell_machinery_form", clear_on_submit=True):
+        m_name = ts.text_input(label=translate_text("Machinery Name*", current_lang), placeholder=translate_text("e.g., John Deere 5310 4WD", current_lang))
+        m_type = ts.selectbox(label=translate_text("Type of Machinery*", current_lang), options=machinery_type_options_form)
 
-            # Change 'ts.form_submit_button' to 'st.form_submit_button'
-            submit_mach_listing_sm = st.form_submit_button(translate_text("✅ List Machinery", current_lang))
+        m_c1, m_c2, m_c3 = ts.columns(3)
+        m_brand = m_c1.text_input(label=translate_text("Brand", current_lang), placeholder=translate_text("e.g., John Deere", current_lang))
+        m_model = m_c2.text_input(label=translate_text("Model", current_lang), placeholder=translate_text("e.g., 5310", current_lang))
+        m_yom = m_c3.number_input(label=translate_text("Year of Manufacture", current_lang), min_value=1950, max_value=datetime.now().year, step=1, format="%d")
 
-            if submit_mach_listing_sm:
-                if not mach_name_sm.strip() or not mach_type_sm or (mach_price_sm <= 0 and not mach_for_rent_sm) or not mach_desc_sm.strip() or not mach_location_sm.strip():
-                    ts.error(translate_text("Please fill in Name, Type, Price (or select for rent), Description, and Location.", current_lang))
-                elif mach_for_rent_sm and mach_rental_price_day_sm <=0 and mach_price_sm <=0:
-                    ts.error(translate_text("If listing for rent, please provide a rental price (or an asking price if also for sale).", current_lang))
-                else:
-                    img1_path_sm = save_uploaded_image(mach_image1_sm, "machinery") if mach_image1_sm else None
-                    img2_path_sm = save_uploaded_image(mach_image2_sm, "machinery") if mach_image2_sm else None
-                    try:
-                        cursor.execute("""
-                            INSERT INTO machinery_listings (user_id, name, type, brand, model, year_of_manufacture,
-                                                            condition, asking_price, description, location, status,
-                                                            image_url_1, image_url_2, for_rent, rental_price_day)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Available', ?, ?, ?, ?)
-                        """, (st.session_state.user_id, mach_name_sm, mach_type_sm, mach_brand_sm or None, mach_model_sm or None,
-                                mach_yom_sm, mach_condition_sm, mach_price_sm if mach_price_sm > 0 else None, # Store None if price is 0
-                                mach_desc_sm, mach_location_sm, img1_path_sm, img2_path_sm,
-                                1 if mach_for_rent_sm else 0, mach_rental_price_day_sm if mach_for_rent_sm else None))
-                        conn.commit()
-                        ts.success(translate_text(f"Machinery '{mach_name_sm}' listed successfully!", current_lang))
-                        logger.info(f"User {st.session_state.username} listed machinery: {mach_name_sm}")
-                    except sqlite3.Error as e:
-                        ts.error(translate_text(f"Database error: {e}", current_lang))
-                        logger.error(f"DB error listing machinery for {st.session_state.username}: {e}")
-            
+        m_condition = ts.selectbox(label=translate_text("Condition*", current_lang), options=[translate_text("New", current_lang), translate_text("Used", current_lang), translate_text("For Parts/Not Working", current_lang)])
+        m_description = ts.text_area(label=translate_text("Description", current_lang), placeholder=translate_text("Describe its condition, usage history, features, etc.", current_lang))
+        m_location = ts.text_input(label=translate_text("Location (City, State)*", current_lang), placeholder=translate_text("e.g., Ludhiana, Punjab", current_lang))
+        
         ts.markdown("---")
-        ts.subheader(translate_text("Your Active Machinery Listings", current_lang))
-        try:
-            cursor.execute("""SELECT machinery_id, name, type, brand, model, asking_price, rental_price_day, for_rent, location, status, image_url_1
-                            FROM machinery_listings WHERE user_id = ? AND status = 'Available'
-                            ORDER BY listing_date DESC""", (st.session_state.user_id,))
-            my_mach_listings_sm = cursor.fetchall()
-            if my_mach_listings_sm:
-                for mach_listing_sm_item in my_mach_listings_sm:
-                    m_id, m_name, m_type, m_brand, m_model, m_price, m_rent_price, m_for_rent, m_loc, m_status, m_img1 = mach_listing_sm_item
-                    # Change 'st.container' to 'ts.container' to be consistent with your 'ts' object
-                    with st.container(border=True):
-                        disp_mc1, disp_mc2 = st.columns([1,3])
-                        with disp_mc1:
-                            display_uploaded_image(m_img1, caption=m_name, width=120)
-                        with disp_mc2:
-                            ts.subheader(translate_text(f"{m_name} ({m_brand or ''} {m_model or ''})", current_lang))
-                            price_display = translate_text(f"Sale Price: ₹{m_price:,.0f}", current_lang) if m_price and m_price > 0 else translate_text("Not for direct sale", current_lang)
-                            if m_for_rent == 1 and m_rent_price and m_rent_price > 0:
-                                price_display += translate_text(f" | Rent: ₹{m_rent_price:,.0f}/day", current_lang)
-                            elif m_for_rent == 1:
-                                price_display += translate_text(" | Available for Rent (price on request)", current_lang)
+        m_price_col, m_rent_col = ts.columns(2)
+        m_asking_price = m_price_col.number_input(label=translate_text("Asking Price for Sale (₹)", current_lang), min_value=0, step=1000)
+        
+        m_for_rent = m_rent_col.checkbox(label=translate_text("Also available for rent?", current_lang))
+        m_rental_price = m_rent_col.number_input(label=translate_text("Rental Price per Day (₹)", current_lang), min_value=0, step=100, disabled=not m_for_rent)
 
-                            ts.markdown(translate_text(f"**Type:** {m_type} | {price_display}", current_lang))
-                            ts.caption(translate_text(f"Location: {m_loc} | Status: {m_status} | Listing ID: {m_id}", current_lang))
-                            # TODO: Add edit/withdraw
-                            # Change 'st.button' to 'ts.button'
-                            if ts.button(translate_text("Withdraw Machinery Listing", current_lang), key=f"withdraw_mach_{m_id}", type="secondary"):
-                                try:
-                                    cursor.execute("UPDATE machinery_listings SET status = 'Withdrawn' WHERE machinery_id = ? AND user_id = ?", (m_id, st.session_state.user_id))
-                                    conn.commit()
-                                    ts.success(translate_text(f"Machinery Listing ID {m_id} withdrawn.", current_lang))
-                                    st.rerun()
-                                except sqlite3.Error as e_wd_m:
-                                    ts.error(translate_text(f"Error withdrawing machinery: {e_wd_m}", current_lang))
+        ts.markdown("---")
+        img_col1, img_col2 = ts.columns(2)
+        m_image_1 = img_col1.file_uploader(translate_text("Upload Main Image*", current_lang), type=['png', 'jpg', 'jpeg'])
+        m_image_2 = img_col2.file_uploader(translate_text("Upload Additional Image (Optional)", current_lang), type=['png', 'jpg', 'jpeg'])
 
-                        ts.markdown("---")
+        # Form submission button
+        submitted = ts.form_submit_button(label="✅ " + translate_text("List My Machinery", current_lang))
+
+        if submitted:
+            if not m_name or not m_type or not m_condition or not m_location or not m_image_1:
+                ts.warning(translate_text("Please fill in all required fields marked with *.", current_lang))
             else:
-                st.info(translate_text("You have no active machinery listings.", current_lang))
-        except sqlite3.Error as e:
-            ts.error(translate_text(f"Could not fetch your machinery listings: {e}", current_lang))
+                try:
+                    conn = get_connection()
+                    cursor = conn.cursor()
+                    
+                    # Save uploaded images and get their paths
+                    image_path_1 = save_uploaded_file(m_image_1) if m_image_1 else None
+                    image_path_2 = save_uploaded_file(m_image_2) if m_image_2 else None
 
+                    cursor.execute("""
+                        INSERT INTO machinery_listings (user_id, name, type, brand, model, year_of_manufacture, condition, description, location, asking_price, for_rent, rental_price_day, image_url_1, image_url_2, listing_date, status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (st.session_state.user_id, m_name, m_type, m_brand, m_model, m_yom, m_condition, m_description, m_location, m_asking_price, 1 if m_for_rent else 0, m_rental_price, image_path_1, image_path_2, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'Available'))
+                    
+                    conn.commit()
+                    ts.success(translate_text("Your machinery has been listed successfully!", current_lang))
+                    st.rerun() # Rerun to show the new listing in the section below
+                except sqlite3.Error as e:
+                    ts.error(f"{translate_text('Database error:', current_lang)} {e}")
+
+
+    # --- 2. YOUR EXISTING LISTINGS ---
+    ts.markdown("---")
+    ts.subheader("🗂️ " + translate_text("Your Listed Machinery", current_lang))
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT machinery_id, name, type, brand, model, asking_price, rental_price_day, for_rent, location, status, image_url_1 FROM machinery_listings WHERE user_id = ? ORDER BY listing_date DESC",
+            (st.session_state.user_id,)
+        )
+        my_mach_listings = cursor.fetchall()
+
+        if not my_mach_listings:
+            ts.info(translate_text("You have no active machinery listings. Use the form above to add one.", current_lang))
+        else:
+            # Pre-translate labels for efficiency
+            sale_price_label = translate_text("Sale:", current_lang)
+            rent_label = translate_text("Rent:", current_lang)
+            per_day_label = translate_text("/day", current_lang)
+            type_label = translate_text("Type:", current_lang)
+            location_label = translate_text("Location:", current_lang)
+            status_label = translate_text("Status:", current_lang)
+            listing_id_label = translate_text("ID:", current_lang)
+            withdraw_button_label = translate_text("Withdraw Listing", current_lang)
+            withdrawn_label = translate_text("Withdrawn", current_lang)
+
+            for listing_item in my_mach_listings:
+                (m_id, m_name, m_type, m_brand, m_model, m_price, 
+                 m_rent_price, m_for_rent, m_loc, m_status, m_img1) = listing_item
+
+                with ts.container(border=True):
+                    disp_col1, disp_col2 = ts.columns([1, 3])
+
+                    with disp_col1:
+                        display_uploaded_image(m_img1, caption=m_name, width=120)
+
+                    with disp_col2:
+                        ts.subheader(f"{m_name} ({m_brand or ''} {m_model or ''})")
+
+                        # CORRECTED: Build the price string using pre-translated labels and data
+                        price_display_parts = []
+                        if m_price and m_price > 0:
+                            price_display_parts.append(f"{sale_price_label} ₹{m_price:,.0f}")
+                        if m_for_rent == 1 and m_rent_price and m_rent_price > 0:
+                            price_display_parts.append(f"{rent_label} ₹{m_rent_price:,.0f}{per_day_label}")
+                        price_display_string = " | ".join(price_display_parts) if price_display_parts else translate_text("Price on request", current_lang)
+                        
+                        ts.markdown(f"**{type_label}** {m_type} | **{price_display_string}**")
+                        ts.caption(f"**{location_label}** {m_loc} | **{status_label}** {m_status} | **{listing_id_label}** {m_id}")
+                        
+                        if m_status == 'Available':
+                            if ts.button(withdraw_button_label, key=f"withdraw_mach_{m_id}", type="secondary"):
+                                cursor.execute(
+                                    "UPDATE machinery_listings SET status = 'Withdrawn' WHERE machinery_id = ? AND user_id = ?", 
+                                    (m_id, st.session_state.user_id)
+                                )
+                                conn.commit()
+                                ts.success(translate_text("Listing withdrawn successfully.", current_lang))
+                                st.rerun()
+                        else:
+                            ts.info(f"{withdrawn_label}", icon="⚠️")
+
+    except sqlite3.Error as e:
+        error_label = translate_text("Could not fetch your machinery listings:", current_lang)
+        ts.error(f"{error_label} {e}")
 # --- In your main PAGE CONTENT ROUTING section ---
 
 elif st.session_state.current_page == "Saved Alerts":

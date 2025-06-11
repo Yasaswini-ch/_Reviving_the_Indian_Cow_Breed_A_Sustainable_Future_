@@ -3118,9 +3118,9 @@ elif st.session_state.current_page == "Browse Cattle":  # Assuming access contro
                             if seller_share_contact == 1:
                                 st.markdown(translate_text("**Contact Information:**", current_lang))
                                 if seller_email:
-                                    st.markdown(translate_text(f"📧 Email: [{seller_email}](mailto:{seller_email}?subject=Inquiry about Cattle: {animal_name or tag_id} - Listing ID {listing_id})", current_lang))
+                                    st.markdown(f"📧 Email: [{seller_email}](mailto:{seller_email}?subject=Inquiry about Cattle: {animal_name or tag_id} - Listing ID {listing_id})")
                                 if seller_phone:
-                                    st.markdown(translate_text(f"📞 Phone: `{seller_phone}`", current_lang))
+                                    st.markdown(f"📞 Phone: `{seller_phone}`")
                                 st.caption(translate_text("Please be respectful when contacting sellers.", current_lang))
                             else:
                                 st.info(translate_text("Seller has chosen not to share direct contact details publicly.", current_lang))

@@ -3461,10 +3461,15 @@ elif st.session_state.current_page == "Vet Locator" and st.session_state.logged_
 #
 # CORRECTED: The 'elif' statement now correctly starts a new line and code block.
 elif st.session_state.current_page == "Browse Machinery":
+    # Use a consistent alias for Streamlit functions, assuming 'ts' is your standard
+    ts = st 
+
+    # --- Page Header ---
     ts.title("🚜 " + translate_text("Browse Farm Machinery for Sale/Rent", current_lang))
     ts.markdown(translate_text("Find machinery listed by other users.", current_lang))
     ts.markdown("---")
 
+    # --- Database Connection ---
     conn = get_connection()
     if not conn:
         ts.error(translate_text("Database connection failed.", current_lang))
@@ -3472,130 +3477,177 @@ elif st.session_state.current_page == "Browse Machinery":
         cursor = conn.cursor()
 
         # --- Filters for Machinery ---
-        bm_c1_bm, bm_c2_bm, bm_c3_bm = st.columns(3)
-        search_mach_name_bm_filter = bm_c1_bm.text_input(translate_text("Search Name/Type/Brand", current_lang), key="bm_search_name_input_filter_v2_corrected")
-        search_mach_loc_bm_filter = bm_c2_bm.text_input(translate_text("Location", current_lang), key="bm_search_loc_input_filter_v2_corrected")
-        mach_type_filter_options_bm = [translate_text("All Types", current_lang)] + [
-            translate_text("Tillage", current_lang),
-            translate_text("Sowing/Planting", current_lang),
-            translate_text("Harvesting", current_lang),
-            translate_text("Post-Harvest", current_lang),
-            translate_text("Dairy Equipment", current_lang),
-            translate_text("Irrigation", current_lang),
-            translate_text("Transport", current_lang),
-            translate_text("Spares/Parts", current_lang),
-            translate_text("Other", current_lang)
-        ]
-        search_mach_type_bm_filter = bm_c3_bm.selectbox(translate_text("Filter Type", current_lang), options=mach_type_filter_options_bm, key="bm_search_type_select_filter_v2_corrected")
+        filter_col1, filter_col2, filter_col3 = ts.columns(3)
+        with filter_col1:
+            search_name = ts.text_input(
+                translate_text("Search Name/Type/Brand", current_lang), 
+                key="machinery_search_name"
+            )
+        with filter_col2:
+            search_location = ts.text_input(
+                translate_text("Location", current_lang), 
+                key="machinery_search_location"
+            )
+        with filter_col3:
+            # This list is correctly defined inside the page's conditional block
+            machinery_type_options = [translate_text("All Types", current_lang)] + [
+                translate_text("Tillage", current_lang),
+                translate_text("Sowing/Planting", current_lang),
+                translate_text("Harvesting", current_lang),
+                translate_text("Post-Harvest", current_lang),
+                translate_text("Dairy Equipment", current_lang),
+                translate_text("Irrigation", current_lang),
+                translate_text("Transport", current_lang),
+                translate_text("Spares/Parts", current_lang),
+                translate_text("Other", current_lang)
+            ]
+            search_type = ts.selectbox(
+                translate_text("Filter Type", current_lang), 
+                options=machinery_type_options, 
+                key="machinery_search_type"
+            )
 
         # --- Save Alert Snippet ---
-        # (This section was already correct, no changes needed here)
-        current_mach_filters = {}
-        if search_mach_name_bm_filter: current_mach_filters['type_name_brand'] = search_mach_name_bm_filter
-        if search_mach_loc_bm_filter: current_mach_filters['location'] = search_mach_loc_bm_filter
-        if search_mach_type_bm_filter != translate_text("All Types", current_lang): current_mach_filters['machinery_type'] = search_mach_type_bm_filter
-        if current_mach_filters and st.session_state.logged_in and st.session_state.role == 'buyer':
-            alert_name_mach = ts.text_input(translate_text("Save current search as Alert Name:", current_lang), key="save_alert_mach_name_input", placeholder=translate_text("e.g., Used Tractors Punjab", current_lang))
-            if ts.button(translate_text("💾 Save Alert for Machinery Search", current_lang), key="save_alert_mach_button"):
-                if alert_name_mach.strip():
+        # This allows users to save their current search filters as an alert
+        current_filters = {}
+        if search_name: current_filters['type_name_brand'] = search_name
+        if search_location: current_filters['location'] = search_location
+        if search_type != translate_text("All Types", current_lang): current_filters['machinery_type'] = search_type
+        
+        if current_filters and st.session_state.get('logged_in') and st.session_state.get('role') == 'buyer':
+            alert_name = ts.text_input(
+                translate_text("Save current search as Alert Name:", current_lang), 
+                key="save_machinery_alert_name", 
+                placeholder=translate_text("e.g., Used Tractors Punjab", current_lang)
+            )
+            if ts.button(translate_text("💾 Save Alert for Machinery Search", current_lang), key="save_machinery_alert_button"):
+                if alert_name.strip():
                     try:
-                        criteria_json_str_m = json.dumps(current_mach_filters)
-                        cursor.execute("INSERT INTO saved_alerts (user_id, alert_name, alert_type, criteria_json, created_at, last_checked_at) VALUES (?, ?, ?, ?, ?, ?)",(st.session_state.user_id, alert_name_mach.strip(), "machinery", criteria_json_str_m, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                        criteria_json = json.dumps(current_filters)
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        cursor.execute(
+                            "INSERT INTO saved_alerts (user_id, alert_name, alert_type, criteria_json, created_at, last_checked_at) VALUES (?, ?, ?, ?, ?, ?)",
+                            (st.session_state.user_id, alert_name.strip(), "machinery", criteria_json, timestamp, timestamp)
+                        )
                         conn.commit()
-                        ts.success(f"{translate_text('Alert', current_lang)} '{alert_name_mach}' {translate_text('saved! Check "Saved Alerts" page.', current_lang)}")
-                    except sqlite3.Error as e_am:
-                        ts.error(f"{translate_text('Error saving machinery alert:', current_lang)} {e_am}")
-                        logger.error(f"Error saving machinery alert for user {st.session_state.user_id}: {e_am}")
+                        ts.success(f"{translate_text('Alert', current_lang)} '{alert_name}' {translate_text('saved! Check the "Saved Alerts" page.', current_lang)}")
+                    except sqlite3.Error as e:
+                        ts.error(f"{translate_text('Error saving machinery alert:', current_lang)} {e}")
+                        logger.error(f"Error saving machinery alert for user {st.session_state.user_id}: {e}")
                 else:
                     ts.warning(translate_text("Please provide a name for your alert to save it.", current_lang))
+        
         ts.markdown("---")
 
-        # --- Database Query ---
-        # (This section was already correct, no changes needed)
-        query_mach_bm = "SELECT ml.machinery_id, u.username as seller_username, seller_profile.full_name as seller_full_name, seller_profile.region as seller_region, seller_profile.email as seller_email, seller_profile.phone_number as seller_phone, seller_profile.share_contact_info, seller_profile.upi_id as seller_upi, ml.name, ml.type, ml.brand, ml.model, ml.year_of_manufacture, ml.condition, ml.asking_price, ml.description, ml.location as listing_location, ml.listing_date, ml.image_url_1, ml.image_url_2, ml.for_rent, ml.rental_price_day FROM machinery_listings ml JOIN users u ON ml.user_id = u.user_id JOIN users seller_profile ON ml.user_id = seller_profile.user_id WHERE ml.status = 'Available'"
-        params_mach_bm = []
-        if search_mach_name_bm_filter:
-            query_mach_bm += " AND (LOWER(ml.name) LIKE ? OR LOWER(ml.type) LIKE ? OR LOWER(ml.brand) LIKE ? OR LOWER(ml.model) LIKE ?)"
-            term_bm = f"%{search_mach_name_bm_filter.lower()}%"
-            params_mach_bm.extend([term_bm, term_bm, term_bm, term_bm])
-        if search_mach_loc_bm_filter:
-            query_mach_bm += " AND LOWER(ml.location) LIKE ?"
-            params_mach_bm.append(f"%{search_mach_loc_bm_filter.lower()}%")
-        if search_mach_type_bm_filter != translate_text("All Types", current_lang):
-            query_mach_bm += " AND ml.type = ?"
-            params_mach_bm.append(search_mach_type_bm_filter)
-        query_mach_bm += " ORDER BY ml.listing_date DESC"
+        # --- Database Query Construction ---
+        query = """
+            SELECT 
+                ml.machinery_id, u.username as seller_username, p.full_name as seller_full_name, 
+                p.region as seller_region, p.email as seller_email, p.phone_number as seller_phone, 
+                p.share_contact_info, p.upi_id as seller_upi, ml.name, ml.type, ml.brand, 
+                ml.model, ml.year_of_manufacture, ml.condition, ml.asking_price, ml.description, 
+                ml.location as listing_location, ml.listing_date, ml.image_url_1, ml.image_url_2, 
+                ml.for_rent, ml.rental_price_day 
+            FROM machinery_listings ml 
+            JOIN users u ON ml.user_id = u.user_id 
+            JOIN users p ON ml.user_id = p.user_id 
+            WHERE ml.status = 'Available'
+        """
+        params = []
+        if search_name:
+            query += " AND (LOWER(ml.name) LIKE ? OR LOWER(ml.type) LIKE ? OR LOWER(ml.brand) LIKE ? OR LOWER(ml.model) LIKE ?)"
+            term = f"%{search_name.lower()}%"
+            params.extend([term, term, term, term])
+        if search_location:
+            query += " AND LOWER(ml.location) LIKE ?"
+            params.append(f"%{search_location.lower()}%")
+        if search_type != translate_text("All Types", current_lang):
+            query += " AND ml.type = ?"
+            params.append(search_type)
+            
+        query += " ORDER BY ml.listing_date DESC"
 
+        # --- Execute Query and Display Results ---
         try:
-            cursor.execute(query_mach_bm, params_mach_bm)
-            mach_listings_data = cursor.fetchall()
-            if mach_listings_data:
-                # CORRECTED: Translate static labels before the loop for efficiency
+            cursor.execute(query, params)
+            machinery_listings = cursor.fetchall()
+
+            if not machinery_listings:
+                ts.info(translate_text("No machinery listings match your criteria.", current_lang))
+            else:
+                # --- Pre-translate labels for efficiency ---
                 found_listings_label = translate_text("Found {count} machinery listings:", current_lang)
-                ts.subheader(found_listings_label.format(count=len(mach_listings_data)))
+                ts.subheader(found_listings_label.format(count=len(machinery_listings)))
 
-                for mach_listing_tuple in mach_listings_data:
+                # Labels used inside the loop
+                type_label = translate_text("Type:", current_lang)
+                condition_label = translate_text("Condition:", current_lang)
+                yom_label = translate_text("YoM:", current_lang)
+                location_label = translate_text("Location:", current_lang)
+                sale_label = translate_text("Sale:", current_lang)
+                rent_label = translate_text("Rent:", current_lang)
+                per_day_label = translate_text("/day", current_lang)
+                for_rent_label = translate_text("For Rent", current_lang)
+                price_on_request_label = translate_text("Price on Request", current_lang)
+                listed_by_label = translate_text('Listed by:', current_lang)
+                on_label = translate_text('on', current_lang)
+                hide_details_label = translate_text("➖ Hide Details", current_lang)
+                view_details_label = translate_text("⚙ View Full Details & Contact", current_lang)
+
+                for listing in machinery_listings:
                     (machinery_id, seller_username, seller_full_name, seller_region, seller_email,
-                     seller_phone, seller_share_contact, seller_upi,
-                     name, type_mach, brand, model, yom, condition, asking_price,
-                     description, listing_location, listing_date_str,
-                     image_url_1, image_url_2, for_rent, rental_price_day) = mach_listing_tuple
+                     seller_phone, seller_share_contact, seller_upi, name, type_mach, brand, 
+                     model, yom, condition, asking_price, description, listing_location, 
+                     listing_date_str, image_url_1, image_url_2, for_rent, rental_price_day) = listing
 
-                    with st.container(border=True):
-                        col_summary_img_mach, col_summary_info_mach = st.columns([1, 3])
-                        with col_summary_img_mach:
+                    with ts.container(border=True):
+                        col_img, col_info = ts.columns([1, 3])
+
+                        with col_img:
                             display_uploaded_image(image_url_1, caption=name, use_container_width=True)
-                        with col_summary_info_mach:
-                            # CORRECTED: Don't translate dynamic content.
-                            ts.subheader(f"{name} ({brand or ''} {model or ''})")
 
-                            # CORRECTED: Translate labels individually, then format.
-                            type_label = translate_text("Type:", current_lang)
-                            condition_label = translate_text("Condition:", current_lang)
-                            yom_label = translate_text("YoM:", current_lang)
-                            ts.markdown(f"{type_label}** {type_mach} | *{condition_label}* {condition} | *{yom_label}* {yom or 'N/A'}")
-                            ts.markdown(f"{translate_text('Location:', current_lang)}** {listing_location}")
+                        with col_info:
+                            ts.subheader(f"{name} ({brand or ''} {model or ''})")
+                            ts.markdown(f"**{type_label}** {type_mach} | ***{condition_label}*** {condition} | ***{yom_label}*** {yom or 'N/A'}")
+                            ts.markdown(f"**{location_label}** {listing_location}")
                             
-                            price_display_mach_str = ""
-                            if asking_price and asking_price > 0: price_display_mach_str += f"{translate_text('Sale:', current_lang)} ₹{asking_price:,.0f}"
+                            price_display_str = ""
+                            if asking_price and asking_price > 0:
+                                price_display_str += f"{sale_label} ₹{asking_price:,.0f}"
                             if for_rent == 1:
-                                rent_label = translate_text("Rent:", current_lang)
-                                per_day_label = translate_text("/day", current_lang)
-                                rent_str_mach = f"{rent_label} ₹{rental_price_day:,.0f}{per_day_label}" if rental_price_day and rental_price_day > 0 else translate_text("For Rent", current_lang)
-                                price_display_mach_str = f"{price_display_mach_str} | {rent_str_mach}" if price_display_mach_str else rent_str_mach
-                            ts.markdown(f"{price_display_mach_str or translate_text('Price on Request', current_lang)}")
+                                rent_str = f"{rent_label} ₹{rental_price_day:,.0f}{per_day_label}" if rental_price_day and rental_price_day > 0 else for_rent_label
+                                price_display_str = f"{price_display_str} | {rent_str}" if price_display_str else rent_str
+                            ts.markdown(f"**{price_display_str or price_on_request_label}**")
                             
-                            # CORRECTED: Translate labels individually, then format.
-                            listed_by_label = translate_text('Listed by:', current_lang)
-                            on_label = translate_text('on', current_lang)
-                            date_str = datetime.strptime(listing_date_str, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
-                            ts.caption(f"{listed_by_label} {seller_username} {on_label} {date_str}")
+                            date_obj = datetime.strptime(listing_date_str, '%Y-%m-%d %H:%M:%S')
+                            ts.caption(f"{listed_by_label} {seller_username} {on_label} {date_obj.strftime('%d %b %Y')}")
                             
-                            is_this_machinery_expanded = (st.session_state.get('expanded_machinery_listing_id') == machinery_id)
-                            button_label_mach = translate_text("➖ Hide Details", current_lang) if is_this_machinery_expanded else translate_text("⚙ View Full Details & Contact", current_lang)
-                            if st.button(button_label_mach, key=f"view_mach_expander_{machinery_id}_corrected"):
-                                st.session_state.expanded_machinery_listing_id = None if is_this_machinery_expanded else machinery_id
-                                st.session_state.expanded_cattle_listing_id = None
+                            is_expanded = (st.session_state.get('expanded_machinery_id') == machinery_id)
+                            button_label = hide_details_label if is_expanded else view_details_label
+                            if ts.button(button_label, key=f"view_machinery_{machinery_id}"):
+                                st.session_state.expanded_machinery_id = None if is_expanded else machinery_id
+                                # Collapse other expanded items if any
+                                st.session_state.expanded_cattle_id = None 
                                 st.rerun()
 
-                        if is_this_machinery_expanded:
+                        # --- Expanded View ---
+                        if is_expanded:
                             ts.markdown("---")
-                            # CORRECTED: Translate labels individually, then format.
                             ts.markdown(f"##### {translate_text('Full Details for:', current_lang)} {name}")
-                            ts.markdown(f"{translate_text('Listing ID:', current_lang)}** {machinery_id}")
-                            ts.markdown(f"{translate_text('Full Description:', current_lang)}\n\n{description or 'No further description.'}")
-                            if model: ts.markdown(f"{translate_text('Model:', current_lang)}** {model}")
-                            if yom: ts.markdown(f"{translate_text('Year of Manufacture:', current_lang)}** {yom}")
+                            ts.markdown(f"**{translate_text('Listing ID:', current_lang)}** {machinery_id}")
+                            ts.markdown(f"**{translate_text('Full Description:', current_lang)}**\n\n{description or 'No further description.'}")
+                            if model: ts.markdown(f"**{translate_text('Model:', current_lang)}** {model}")
+                            if yom: ts.markdown(f"**{translate_text('Year of Manufacture:', current_lang)}** {yom}")
                             if image_url_2:
-                                ts.markdown(f"{translate_text('Additional Image:', current_lang)}")
+                                ts.markdown(f"**{translate_text('Additional Image:', current_lang)}**")
                                 display_uploaded_image(image_url_2, caption=translate_text("Additional Image", current_lang), use_container_width=True)
                             
                             ts.markdown("---")
                             ts.subheader(translate_text("Seller Information & Payment", current_lang))
-                            ts.markdown(f"{translate_text('Seller:', current_lang)}** {seller_full_name or seller_username} ({translate_text('Region:', current_lang)} {seller_region or 'N/A'})")
+                            ts.markdown(f"**{translate_text('Seller:', current_lang)}** {seller_full_name or seller_username} ({translate_text('Region:', current_lang)} {seller_region or 'N/A'})")
                             
                             if seller_share_contact == 1:
-                                ts.markdown(f"{translate_text('Contact Details:', current_lang)}")
+                                ts.markdown(f"**{translate_text('Contact Details:', current_lang)}**")
                                 if seller_email: ts.markdown(f"📧 {translate_text('Email:', current_lang)} [{seller_email}](mailto:{seller_email}?subject=Inquiry about Machinery: {name} - ID {machinery_id})")
                                 if seller_phone: ts.markdown(f"📞 {translate_text('Phone:', current_lang)} {seller_phone}")
                                 ts.caption(translate_text("Please be respectful when contacting sellers.", current_lang))
@@ -3603,25 +3655,18 @@ elif st.session_state.current_page == "Browse Machinery":
                                 ts.info(translate_text("Seller has chosen not to share direct contact details publicly.", current_lang))
 
                             if seller_upi:
-                                # CORRECTED: Translate static parts of the string.
-                                ts.success(f"{translate_text('Pay Seller via UPI (e.g., GPay, PhonePe):', current_lang)}** {seller_upi}", icon="💳")
+                                ts.success(f"{translate_text('Pay Seller via UPI (e.g., GPay, PhonePe):', current_lang)} **{seller_upi}**", icon="💳")
                                 if asking_price and asking_price > 0:
                                     payment_instruction = translate_text("You can use this UPI ID to pay *₹{price}* to *{seller}*.", current_lang)
                                     ts.markdown(payment_instruction.format(price=f"{asking_price:,.0f}", seller=seller_full_name or seller_username))
-                                    upi_payment_str_mach = f"upi://pay?pa={seller_upi}&pn={seller_full_name or seller_username}&am={asking_price:.2f}&cu=INR&tn=Payment for Machinery ID {machinery_id}"
-                                    ts.link_button(translate_text("Generate UPI Payment Link (Experimental)", current_lang), upi_payment_str_mach, help=translate_text("Click to try opening UPI app.", current_lang))
-                                # ... (remaining UPI logic is similar and correct)
+                                    upi_payment_link = f"upi://pay?pa={seller_upi}&pn={seller_full_name or seller_username}&am={asking_price:.2f}&cu=INR&tn=Payment for Machinery ID {machinery_id}"
+                                    ts.link_button(translate_text("Generate UPI Payment Link (Experimental)", current_lang), upi_payment_link, help=translate_text("Click to try opening UPI app.", current_lang))
+                            
+                            # Add to Wishlist/Tracking logic would go here if needed
 
-                            # ... (Your Wishlist/Tracking button logic was correct) ...
-                            if st.session_state.logged_in:
-                                # This logic is fine, no changes needed
-                                # ...
-
-            else:
-                ts.info(translate_text("No machinery listings match your criteria.", current_lang))
         except sqlite3.Error as e:
             ts.error(f"{translate_text('Could not fetch machinery listings:', current_lang)} {e}")
-            logger.error(f"DB error Browse machinery: {e}")
+            logger.error(f"DB error on Browse Machinery page: {e}")
 # --- MODIFIED: Sell Machinery Page (Farmer/Buyer) ---
 elif selected_page == "Sell Machinery" and st.session_state.logged_in:
     ts.title("🛠️ " + translate_text("List Your Farm Machinery for Sale/Rent", current_lang))

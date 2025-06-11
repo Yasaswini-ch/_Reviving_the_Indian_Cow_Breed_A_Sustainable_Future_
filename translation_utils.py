@@ -23,11 +23,8 @@ LANGUAGES = {
 
 def safe_translate(text: str, dest_lang: str) -> str:
     try:
-        if not text:
-            return ""  # Handle empty or None text safely
         translated = GoogleTranslator(source='auto', target=dest_lang).translate(text)
-        if not translated:
-            return text  # Fallback to original if translation failed silently
+        # Restore line breaks that may have been lost
         translated = translated.replace("\\n", "\n")
         return translated
     except Exception as e:

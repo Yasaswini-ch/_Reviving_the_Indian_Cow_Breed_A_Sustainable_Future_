@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from deep_translator import GoogleTranslator
+from googletrans import Translator
 import requests
 import pandas as pd
 import google.generativeai as genai

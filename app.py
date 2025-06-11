@@ -4525,7 +4525,7 @@ elif selected_page == "Temple Connect":
     
     ts.title("🛕 Temple/Goshala Network")
     ts.markdown("Find nearby temples and shelters supporting indigenous cattle breeds")
-    ts.markdown("---")
+    st.markdown("---")
 
     # Full temples list with coordinates for mapping
     temples = [

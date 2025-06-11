@@ -191,13 +191,7 @@ def load_roboflow_model():
         return None
 roboflow_model = load_roboflow_model()
 
-@st.cache_resource
-def load_my_model():
-    # The path is now relative to your app.py file
-    model_path = os.path.join("models", "disease_model.h5")
-    model = load_model(model_path)
-    return model
-model = load_my_model()
+SKIN_DISEASE_MODEL_PATH = r"C:\Users\chebo\Kamdhenu_App-main\model\model.h5"
 # Relative to app1.py
 CLASS_NAMES_SKIN_DISEASE = ["Bacterial", "Fungal", "Healthy"] # Must match model output order
 

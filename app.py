@@ -4448,7 +4448,7 @@ elif selected_page == "Breed Info": # Or: elif st.session_state.current_page == 
     else:
         ts.warning("⚠️ No breeds match your current filters or no breed data available.")
 
-    ts.markdown("---")
+    st.markdown("---")
     ts.subheader("🧠 Cultural & Scientific Insights")
     # Your tabs for Panchgavya, Breed Significance, Modern Research remain the same
     tab1_bi, tab2_bi, tab3_bi = st.tabs(["Panchgavya", "Breed Significance", "Modern Research"])

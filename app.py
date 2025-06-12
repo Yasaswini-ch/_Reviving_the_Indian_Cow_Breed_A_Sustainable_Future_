@@ -4454,7 +4454,6 @@ elif selected_page == "Breed Info": # Or: elif st.session_state.current_page == 
     tab1_bi, tab2_bi, tab3_bi = st.tabs(["Panchgavya", "Breed Significance", "Modern Research"])
     with tab1_bi:
         ts.subheader("🧪 Panchgavya Applications")
-        display_static_image("images\p5.jpg", use_container_width=True) # Use your helper
         ts.markdown("- **Milk**: Ayurvedic preparations\n- **Ghee**: Rituals and medicine\n- **Dung**: Organic farming\n- **Urine**: Traditional remedies\n- **Curd**: Nutritional benefits")
     with tab2_bi:
         ts.subheader("✨ Breed Significance: Symbolism & Scriptures")

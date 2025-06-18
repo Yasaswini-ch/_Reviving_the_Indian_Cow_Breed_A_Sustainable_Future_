@@ -102,7 +102,21 @@ kamdhenu-app-main/
 ├── temp_image.jpg                  # A temporary or placeholder image used by the app
 └── translation_utils.py            # Utility functions for handling language translation
 ```
+## 🔐 Example User Accounts (For Hackathon Testing Only)
 
+To help you quickly test different user roles within the application during the hackathon, we've provided a couple of sample user accounts:
+
+### 👩 Buyer Account
+- **Username:** `buyer_jane`
+- **Password:** `pass123`
+
+### 👨 Farmer Account
+- **Username:** `farmer_john`
+- **Password:** `pass123`
+
+> ⚠️ **Note:** These are dummy accounts with a simple, common password (`pass123`) designed purely for demonstration and testing within the hackathon environment.  
+> They are **not real user credentials** and should **not** be used outside of this testing context.  
+> In a production application, robust user registration, authentication, and secure password practices must be implemented.
 ---
 
 ## 💂️ Getting Started
